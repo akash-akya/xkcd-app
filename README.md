@@ -3,8 +3,8 @@ A simple app which fetches Web comics from http://xkcd.com &amp; articles from h
 (saves the image). 
 
 # Libraries used ::
-1. android-pull-to-refresh by chrisbanes https://github.com/chrisbanes/Android-PullToRefresh
-2. jsoup
+* android-pull-to-refresh by chrisbanes https://github.com/chrisbanes/Android-PullToRefresh
+* jsoup
 
 # Features :
 * Offline support (saves images in /XKCD/ folder)
