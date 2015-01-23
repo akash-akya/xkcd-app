@@ -2,7 +2,7 @@
 A simple app which fetches Web comics from http://xkcd.com &amp; articles from http://what-if.xkcd.com. Support offile viewing
 (saves the image). 
 
-![alt tag](app/src/banner.jpg)
+![alt tag](https://lh5.googleusercontent.com/-hLTw-P7Sar0/VMJS7B6m6AI/AAAAAAAAB4U/3V48ah3i1Ag/s912/banner.jpg)
 
 # Libraries used 
 * android-pull-to-refresh by chrisbanes https://github.com/chrisbanes/Android-PullToRefresh
