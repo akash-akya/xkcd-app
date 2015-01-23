@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">XKCD</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="about">Licensed under GPL 3.0\nplease see https://github.com/akash-akya. Email support at akashh246@gamil.com.</string>
+    <string name="title_activity_what_if">WhatIf</string>
+    <string name="title_activity_data_helper">DataHelper</string>
+
+</resources>

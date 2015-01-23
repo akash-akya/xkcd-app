@@ -1,0 +1,22 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools" tools:context="com.akash.xkxd.WhatIf"
+    xmlns:yourapp="http://schemas.android.com/apk/res-auto" >
+
+    <item
+        android:id="@+id/menu_item_share2"
+        android:icon="@drawable/ic_action_share"
+        yourapp:showAsAction="ifRoom"
+        android:title="Share" />
+
+    <item  android:id="@+id/search2"
+        android:icon="@drawable/ic_action_search"
+        yourapp:showAsAction="ifRoom|collapseActionView"
+        yourapp:actionViewClass="android.support.v7.widget.SearchView"
+        android:title="@string/app_name"/>
+
+    <item android:id="@+id/action_xkcd" android:title="xkcd"/>
+
+    <item android:id="@+id/action_settings" android:title="About App"/>
+
+</menu>

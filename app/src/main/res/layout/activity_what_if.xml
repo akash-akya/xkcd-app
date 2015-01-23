@@ -1,0 +1,92 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
+    android:layout_height="match_parent" android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="5dp"
+    android:paddingBottom="5dp" tools:context="com.akash.xkxd.WhatIf">
+
+    <uk.co.senab.actionbarpulltorefresh.extras.actionbarcompat.PullToRefreshLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/ptr_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <ScrollView
+            android:layout_width="fill_parent"
+            android:layout_above="@+id/button"
+            android:layout_height="match_parent"
+
+            android:id="@+id/scrollView">
+            <LinearLayout
+                android:layout_width="fill_parent"
+                android:orientation="vertical"
+                android:layout_height="match_parent">
+                <TextView android:text=""
+                    android:id="@+id/whatif_tv"
+                    android:textSize="18sp"
+                    android:textIsSelectable="true"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:clickable="true"
+                    android:linksClickable="true" />
+
+                <ImageView
+                    android:layout_width="fill_parent"
+                    android:paddingTop="100dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:src="@drawable/whatiflogo"
+                    android:adjustViewBounds="true"
+                    android:clickable="false"
+                    android:id="@+id/whatifbanner"
+                    android:cropToPadding="false" />
+
+                <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="15dp">
+                    <Button
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1.0"
+                        android:gravity="center"
+                        android:id="@+id/mPrev"
+                        android:layout_margin="5dp"
+                        android:background="#1a1a1a"
+                        android:padding="5dp"
+                        android:text="PREV"
+                        android:visibility="gone"
+                        android:textSize="22sp"
+                        android:textAllCaps="true"
+                        android:linksClickable="true"
+                        android:clickable="true" />
+                    <Button
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1.0"
+                        android:gravity="center"
+                        android:id="@+id/mNext"
+                        android:layout_margin="5dp"
+                        android:background="#1a1a1a"
+                        android:padding="5dp"
+                        android:text="NEXT"
+                        android:visibility="gone"
+                        android:textSize="22sp"
+                        android:textAllCaps="true"
+                        android:linksClickable="true"
+                        android:clickable="true" />
+                </LinearLayout>
+            </LinearLayout>
+        </ScrollView>
+
+    </uk.co.senab.actionbarpulltorefresh.extras.actionbarcompat.PullToRefreshLayout>
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Pull down to refresh"
+        android:textSize="18dp"
+        android:id="@+id/textView2"
+        android:layout_centerVertical="true"
+        android:layout_centerHorizontal="true" />
+
+</RelativeLayout>
