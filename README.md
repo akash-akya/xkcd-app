@@ -17,6 +17,7 @@ A simple app which fetches Web comics from http://xkcd.com &amp; articles from h
 * Dark theme with navigation button for ease of use
 * Images can be shared using app
 
+[XDA Link](http://forum.xda-developers.com/android/apps-games/xkcd-web-comics-articles-app-t3010690)
 
 This app is Licenced under GPL v3.0.
 feel free to use,modify or whatever.
