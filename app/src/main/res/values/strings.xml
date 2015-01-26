@@ -7,5 +7,6 @@
     <string name="about">Licensed under GPL 3.0\nplease see https://github.com/akash-akya. Email support at akashh246@gamil.com.</string>
     <string name="title_activity_what_if">WhatIf</string>
     <string name="title_activity_data_helper">DataHelper</string>
+    <string name="title_activity_list_view">ListViewActivity</string>
 
 </resources>
