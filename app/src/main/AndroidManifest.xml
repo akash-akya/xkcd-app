@@ -35,10 +35,9 @@
         </activity>
         <activity
             android:name=".ListViewActivity"
-            android:label="XKCD Comics Browser" >
+            android:label="XKCD" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>

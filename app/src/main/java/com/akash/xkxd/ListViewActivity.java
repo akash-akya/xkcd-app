@@ -3,9 +3,12 @@ package com.akash.xkxd;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Environment;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.text.TextPaint;
+import android.text.style.URLSpan;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -40,6 +43,8 @@ public class ListViewActivity extends ActionBarActivity {
         list = folder.listFiles();
         mFilesList = new ArrayList<String>();
         mFiles = new ArrayList<Integer>() ;
+
+        setTitle("XKCD Comics Browser");
 
         mPreference = getSharedPreferences("XKCD_PREF", Context.MODE_PRIVATE);
 
