@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.v4.view.MenuItemCompat;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.support.v7.widget.SearchView;
@@ -53,8 +54,9 @@ public class WhatIf extends ActionBarActivity {
     String mTitle;
     int mLatest;
     String mPrev,mNext;
+    SwipeRefreshLayout swipeLayout;
 
-    private PullToRefreshLayout mPullToRefreshLayout;
+//    private PullToRefreshLayout mPullToRefreshLayout;
 
 
     @Override
@@ -68,24 +70,42 @@ public class WhatIf extends ActionBarActivity {
 
         setTitle("What-If");
 
-        mPullToRefreshLayout = (PullToRefreshLayout) findViewById(R.id.ptr_layout);
+        swipeLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_container);
+        swipeLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                num=0;
+                new GetArtistInfo().execute();
 
-        // Now setup the PullToRefreshLayout
-        ActionBarPullToRefresh.from(this)
-                // Mark All Children as pullable
-                .allChildrenArePullable()
-                        // Set a OnRefreshListener
-                .listener( new OnRefreshListener() {
-                    @Override
-                    public void onRefreshStarted(View view) {
-                        num=0;
-                        new GetArtistInfo().execute();
-                    }
+            }
+        });
+
+        swipeLayout.setColorSchemeResources(android.R.color.holo_blue_bright,
+                android.R.color.holo_green_light,
+                android.R.color.holo_orange_light,
+                android.R.color.holo_red_light);
+
+        swipeLayout.setProgressBackgroundColor(R.color.progress_spinner);
 
 
-                })
-        // Finally commit the setup to our PullToRefreshLayout
-        .setup(mPullToRefreshLayout);
+//        mPullToRefreshLayout = (PullToRefreshLayout) findViewById(R.id.ptr_layout);
+//
+//        // Now setup the PullToRefreshLayout
+//        ActionBarPullToRefresh.from(this)
+//                // Mark All Children as pullable
+//                .allChildrenArePullable()
+//                        // Set a OnRefreshListener
+//                .listener( new OnRefreshListener() {
+//                    @Override
+//                    public void onRefreshStarted(View view) {
+//                        num=0;
+//                        new GetArtistInfo().execute();
+//                    }
+//
+//
+//                })
+//        // Finally commit the setup to our PullToRefreshLayout
+//        .setup(mPullToRefreshLayout);
 
         findViewById(R.id.textView2).setVisibility(View.VISIBLE);
         findViewById(R.id.whatifbanner).setVisibility(View.VISIBLE);
@@ -123,7 +143,6 @@ public class WhatIf extends ActionBarActivity {
         mN.setVisibility(View.GONE);
 
 
-
     }
 
 
@@ -138,7 +157,8 @@ public class GetArtistInfo extends AsyncTask<Void, Void, Void> {
     @Override
     protected void onPreExecute() {
         super.onPreExecute();
-        mPullToRefreshLayout.setRefreshing(true);
+//        mPullToRefreshLayout.setRefreshing(true);
+        swipeLayout.setRefreshing(true);
         mErrorMessage = "";
 
     }
@@ -249,9 +269,10 @@ public class GetArtistInfo extends AsyncTask<Void, Void, Void> {
 
 
         }
-        mPullToRefreshLayout.setRefreshing(false);
-        mPullToRefreshLayout.setRefreshComplete();
+//        mPullToRefreshLayout.setRefreshing(false);
+//        mPullToRefreshLayout.setRefreshComplete();
 
+        swipeLayout.setRefreshing(false);
     }
 }
 
@@ -317,7 +338,6 @@ public class GetArtistInfo extends AsyncTask<Void, Void, Void> {
             case R.id.action_xkcd:
                 Intent intent = new Intent(this,MainActivity.class);
                 startActivity(intent);
-                finish();
 //                AboutApp.Show(MainActivity.this);
                 return true;
             default:

@@ -8,5 +8,7 @@
     <string name="title_activity_what_if">WhatIf</string>
     <string name="title_activity_data_helper">DataHelper</string>
     <string name="title_activity_list_view">ListViewActivity</string>
+    <string name="title_activity_view_pager">ViewPagerActivity</string>
+    <string name="title_activity_pager">PagerActivity</string>
 
 </resources>

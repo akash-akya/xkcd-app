@@ -1,85 +1,132 @@
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
-    android:layout_height="match_parent" android:paddingLeft="5dp"
-    android:paddingRight="5dp"
-    android:paddingTop="@dimen/activity_vertical_margin"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:gesture-image="http://schemas.polites.com/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="fill_parent"
     android:id="@+id/relative"
-    android:paddingBottom="8dp" tools:context=".MainActivity">
+    android:orientation="vertical"
+    tools:context=".MainActivity">
 
-    <uk.co.senab.actionbarpulltorefresh.extras.actionbarcompat.PullToRefreshLayout
-        xmlns:android="http://schemas.android.com/apk/res/android"
-        android:id="@+id/ptr_layout1"
-        android:layout_above="@+id/buttons"
-        android:layout_centerInParent="true"
+    <FrameLayout
         android:layout_width="fill_parent"
-        android:layout_height="match_parent">
-        <ScrollView
+        android:layout_height="fill_parent"
+        android:id="@+id/content"
+        android:orientation="vertical">
+
+        <LinearLayout
             android:layout_width="fill_parent"
-            android:layout_height="match_parent">
-            <LinearLayout
+            android:layout_height="fill_parent"
+            android:id="@+id/image_background"
+            android:background="#ff222222" >
+
+            <FrameLayout
                 android:layout_width="fill_parent"
-                android:orientation="vertical"
-                android:layout_height="wrap_content">
+                android:layout_height="fill_parent">
+
+
                 <ImageView
-                    android:layout_gravity="center_horizontal"
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:contentDescription="image"
-                    android:src="#00000000"
-                    android:adjustViewBounds="true"
-                    android:id="@+id/imageView" />
-                <TextView
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:text=""
-                    android:gravity="center"
-                    android:textSize="18sp"
-                    android:id="@+id/textView"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginBottom="8dp" />
+                android:layout_width="fill_parent"
+                android:layout_height="match_parent"
+                android:scaleType="fitCenter"
+                android:contentDescription="image"
+                android:src="#00000000"
+                android:id="@+id/imageView" />
 
-            </LinearLayout>
-        </ScrollView>
-    </uk.co.senab.actionbarpulltorefresh.extras.actionbarcompat.PullToRefreshLayout>
+
+                <LinearLayout
+                    android:layout_width="fill_parent"
+                    android:layout_height="match_parent"
+                    android:id="@+id/desc_container"
+                    android:visibility="gone"
+                    android:background="#dd101010"
+                    android:gravity="center">
+
+                    <TextView
+                        android:layout_width="fill_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:id="@+id/description"
+                        android:text="ufyuyutyutyu"
+                        android:paddingTop="40dp"
+                        android:paddingBottom="40dp"
+                        android:padding="10dp"
+                        android:minHeight="200dp"
+                        android:textColor="@android:color/white"
+                        android:textSize="20sp" />
+
+                </LinearLayout>
+
+            </FrameLayout>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/buttons"
+            android:layout_gravity="bottom"
+            android:background="#df222222">
+
+            <Button
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1.0"
+                android:gravity="center"
+                android:id="@+id/mPrevious"
+                android:layout_margin="2dp"
+                android:padding="2dp"
+                android:text="PREV"
+                android:textSize="18sp"
+                android:textAllCaps="true"
+                android:linksClickable="true"
+                style="@android:style/Widget.Holo.Button.Borderless"
+                android:clickable="true" />
+
+            <View android:layout_height="fill_parent"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="4dp"
+                android:layout_width="1dp"
+                android:background="#70777777"/>
+
+            <Button
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1.0"
+                android:gravity="center"
+                android:id="@+id/mNextButton"
+                android:layout_margin="2dp"
+                android:padding="2dp"
+                android:text="NEXT"
+                android:textSize="18sp"
+                android:textAllCaps="true"
+                android:linksClickable="true"
+                style="@android:style/Widget.Holo.Button.Borderless"
+                android:clickable="true" />
+
+        </LinearLayout>
+    </FrameLayout>
+
     <LinearLayout
-        android:orientation="horizontal"
         android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/buttons"
-        android:layout_alignParentBottom="true"
-        android:layout_marginTop="5dp">
-        <Button
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="1.0"
-            android:gravity="center"
-            android:id="@+id/mPrevious"
-            android:layout_margin="5dp"
-            android:background="#1a1a1a"
-            android:padding="5dp"
-            android:text="PREV"
-            android:textSize="22sp"
-            android:visibility="gone"
-            android:textAllCaps="true"
-            android:linksClickable="true"
-            android:clickable="true" />
+        android:layout_height="fill_parent"
+        android:background="#ff111111"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:id="@+id/loading">
 
-        <Button
-            android:layout_width="match_parent"
+        <ProgressBar
+            android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1.0"
+            android:indeterminate="true" />
+
+        <TextView
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
             android:gravity="center"
-            android:id="@+id/mNextButton"
-            android:layout_margin="5dp"
-            android:background="#1a1a1a"
-            android:padding="5dp"
-            android:text="NEXT"
-            android:textSize="22sp"
-            android:visibility="gone"
-            android:textAllCaps="true"
-            android:linksClickable="true"
-            android:clickable="true" />
+            android:padding="20dp"
+            android:textSize="18dp"
+            android:text="Loading content"/>
 
     </LinearLayout>
-
-</RelativeLayout>
+</LinearLayout>

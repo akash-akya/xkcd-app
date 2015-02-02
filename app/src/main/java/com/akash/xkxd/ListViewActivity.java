@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Environment;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.text.TextPaint;
@@ -33,6 +34,7 @@ public class ListViewActivity extends ActionBarActivity {
     ListView listView1;
     ArrayAdapter<String> adapter;
     File list[];
+    SwipeRefreshLayout swipeLayout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,18 +50,44 @@ public class ListViewActivity extends ActionBarActivity {
 
         mPreference = getSharedPreferences("XKCD_PREF", Context.MODE_PRIVATE);
 
-        for(File file : list){
-            String name = file.getName().replaceAll("[^0-9]","");
-            if(!mPreference.getString(PREFIX + name, "").equals("")) {
-                mFiles.add(Integer.parseInt(name));
+        swipeLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_container);
+        swipeLayout.setColorSchemeResources(android.R.color.holo_blue_bright,
+                android.R.color.holo_green_light,
+                android.R.color.holo_orange_light,
+                android.R.color.holo_red_light);
+
+        swipeLayout.setProgressBackgroundColor(R.color.progress_spinner);
+        swipeLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                Intent intent = new Intent(ListViewActivity.this, MainActivity.class);
+                intent.putExtra(getPackageName() + ".NUMBER", 0);
+                startActivity(intent);
             }
-        }
+        });
 
-        Collections.sort(mFiles);
+//       try{
+//
+//           for(File file : list){
+//               String name = file.getName().replaceAll("[^0-9]","");
+//               if(!mPreference.getString(PREFIX + name, "").equals("")) {
+//                   mFiles.add(Integer.parseInt(name));
+//               }
+//           }
+//
+//           Collections.sort(mFiles);
+//
+//           for (Integer num : mFiles){
+//               mFilesList.add( num + " - " + mPreference.getString(PREFIX + num, ""));
+//           }
+//
+//       } catch (NullPointerException e){
+//           mFilesList.add("noFiles");
+//           Intent intent = new Intent(ListViewActivity.this, MainActivity.class);
+//           intent.putExtra(getPackageName() + ".NUMBER", 0);
+//           startActivity(intent);
+//       }
 
-        for (Integer num : mFiles){
-            mFilesList.add( num + " - " + mPreference.getString(PREFIX + num, ""));
-        }
 
         listView1 = (ListView) findViewById(R.id.listview);
 
@@ -84,6 +112,7 @@ public class ListViewActivity extends ActionBarActivity {
     @Override
     protected void onResume() {
 
+        try{
         list = folder.listFiles();
         mFiles.clear();
 
@@ -100,10 +129,25 @@ public class ListViewActivity extends ActionBarActivity {
         for (Integer num : mFiles){
             mFilesList.add( num + " - " + mPreference.getString(PREFIX + num, ""));
         }
+    } catch (NullPointerException e){
+        mFilesList.add("noFiles");
+        Intent intent = new Intent(ListViewActivity.this, MainActivity.class);
+        intent.putExtra(getPackageName() + ".NUMBER", 0);
+        startActivity(intent);
+    }
 
-        adapter.notifyDataSetChanged();
+
+    adapter.notifyDataSetChanged();
 
         super.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        if(swipeLayout.isRefreshing())
+            swipeLayout.setRefreshing(false);
     }
 
     @Override
@@ -120,11 +164,19 @@ public class ListViewActivity extends ActionBarActivity {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
+        switch (item.getItemId()) {
+            //noinspection SimplifiableIfStatement
+            case R.id.action_settings:
+                AboutApp.Show(ListViewActivity.this);
+                return true;
 
-        return super.onOptionsItemSelected(item);
+            case R.id.action_whatif:
+                Intent intent = new Intent(this, WhatIf.class);
+                startActivity(intent);
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 }
