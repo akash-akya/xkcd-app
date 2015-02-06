@@ -4,17 +4,17 @@ A simple app which fetches Web comics from http://xkcd.com &amp; articles from h
 
 
 # Libraries used 
-* PhotoView by chrisbanes https://github.com/chrisbanes/Android-PullToRefresh
+* PhotoView by chrisbanes https://github.com/chrisbanes/PhotoView
 * jsoup
 
 # Features
-* Complete image view features using PhotoView library.
+* Complete image view features using PhotoView library. (pinch zoom, drag to move)
 * Offline support (saves images in /XKCD/ folder)
 * Swipe to fetch latest comic
-* Also fetches image description
+* Fetches image description
 * You can search by comic number
 * Also fetches what-if.xkcd.com articles (only text)
-* Dark theme with navigation button for ease of use
+* Dark theme with navigation buttons
 * Images can be shared using app
 
 [XDA Link](http://forum.xda-developers.com/android/apps-games/xkcd-web-comics-articles-app-t3010690)
