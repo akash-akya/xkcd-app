@@ -3,30 +3,11 @@
     <!-- Base application theme. -->
     <style name="AppTheme" parent="Theme.AppCompat.Light">
         <!-- Customize your theme here. -->
-        <item name="ptrHeaderStyle">@style/Widget.Custom.PtrHeader</item>
-
 
     </style>
 
     <style name="AppThemeDark" parent="Theme.AppCompat">
         <!-- Customize your theme here. -->
-        <item name="ptrHeaderStyle">@style/Widget.Custom.PtrHeader.Dark</item>
 
-    </style>
-
-    <style name="Widget.Custom.PtrHeader.Dark" parent="Widget.AppCompat.ActionBar">
-
-        <item name="ptrHeaderBackground">#242424</item>
-        <item name="ptrHeaderHeight">?attr/actionBarSize</item>
-        <item name="ptrPullText">Pull to fetch latest content</item>
-        <item name="ptrRefreshingText">Fetching the content</item>
-    </style>
-    
-    <style name="Widget.Custom.PtrHeader" parent="Widget.AppCompat.ActionBar">
-
-        <item name="ptrHeaderHeight">?attr/actionBarSize</item>
-        <item name="ptrPullText">Pull to fetch latest content</item>
-        <item name="ptrRefreshingText">Fetching the content</item>
-        <!--<item name="ptrReleaseText">...</item>-->
     </style>
 </resources>
