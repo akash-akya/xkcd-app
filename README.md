@@ -17,7 +17,7 @@ _A simple app which fetches Web comics from [XKCD] articles from [What-If].  Sup
 
 **Currently app support android version > 4.0 (Icecream sandwich) Lollipop is not supported.**
 
-#### STATUS : STABLE
+[u]#### STATUS : STABLE[/u]
 
 ### TO-DO
 - Add Lollipop support
