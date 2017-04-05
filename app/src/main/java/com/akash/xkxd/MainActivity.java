@@ -1,10 +1,13 @@
 package com.akash.xkxd;
 
+import android.Manifest;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -13,6 +16,7 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
@@ -69,7 +73,7 @@ public class MainActivity extends ActionBarActivity {
     SharedPreferences  mPreference;
 //    private PullToRefreshLayout mPullToRefreshLayout;
     SharedPreferences.Editor ed;
-    String PATH;
+//    String PATH;
     int number;
     ImageView logoimg;
     String targetFileName;
@@ -80,6 +84,7 @@ public class MainActivity extends ActionBarActivity {
     LinearLayout mDescContainer;
     TextView DescrTextView;
     ActionBar mActionBar;
+    private File sdCard;
 
 
     @Override
@@ -95,9 +100,11 @@ public class MainActivity extends ActionBarActivity {
         logoimg = (ImageView) findViewById(R.id.imageView);
         DescrTextView = (TextView) findViewById(R.id.description);
         mDescContainer = (LinearLayout) findViewById(R.id.desc_container);
-        PATH = Environment.getExternalStorageDirectory()+ "/"+"XKCD/";
+        sdCard = Environment.getExternalStorageDirectory();
 
         mActionBar = getSupportActionBar();
+
+        verifyStoragePermissions(this);
 
         mAttacher = new PhotoViewAttacher(logoimg);
         getSupportActionBar().setBackgroundDrawable(getResources().getDrawable(R.drawable.actionbar_bg));
@@ -240,7 +247,7 @@ public class MainActivity extends ActionBarActivity {
             targetFileName = num + ".png";
 
 
-            File file = new File(PATH+targetFileName);
+            File file = new File(sdCard.getAbsolutePath()+ "/XKCD/"+targetFileName);
             if(file.exists() && num!=0){
                 mDuplicate = true;
                 number = num;
@@ -304,7 +311,7 @@ public class MainActivity extends ActionBarActivity {
 
                     targetFileName = idnum + ".png";
 
-                    File file = new File(PATH + targetFileName);
+                    File file = new File(sdCard.getAbsolutePath()+ "/XKCD/" + targetFileName);
                     if (num == 0 && file.exists()) {
                         mDuplicate = true;
                         return null;
@@ -327,13 +334,13 @@ public class MainActivity extends ActionBarActivity {
                     myBitmap = BitmapFactory.decodeStream(input);
 
 
-                    File folder = new File(PATH);
+                    File folder = new File(sdCard.getAbsolutePath()+ "/XKCD/");
                     if (!folder.exists()) {
                         folder.mkdir();//If there is no folder it will be created.
                     }
 
                     input = new BufferedInputStream(new URL(imgSrc).openStream());
-                    OutputStream output = new FileOutputStream(PATH + targetFileName);
+                    OutputStream output = new FileOutputStream(sdCard.getAbsolutePath()+ "/XKCD/" + targetFileName);
                     byte data[] = new byte[1024];
                     long total = 0;
                     int count;
@@ -431,8 +438,8 @@ public class MainActivity extends ActionBarActivity {
                 }
 
                 targetFileName = Integer.toString(number) + ".png";
-                Bitmap bMap = BitmapFactory.decodeFile(PATH+targetFileName);
-                Log.w("XKCD","File : "+PATH+targetFileName);
+                Bitmap bMap = BitmapFactory.decodeFile(sdCard.getAbsolutePath()+ "/XKCD/"+targetFileName);
+                Log.w("XKCD","File : "+sdCard.getAbsolutePath()+ "/XKCD/"+targetFileName);
                 DescrTextView.setText(mPreference.getString("description_" + Integer.toString(number), ""));
                 setTitle(mPreference.getString("title_"+Integer.toString(number),"")+" (" + number + ")");
                 logoimg.setImageBitmap(bMap);
@@ -464,6 +471,34 @@ public class MainActivity extends ActionBarActivity {
 
     }
 
+
+    // Storage Permissions
+    private static final int REQUEST_EXTERNAL_STORAGE = 1;
+    private static String[] PERMISSIONS_STORAGE = {
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+    };
+
+    /**
+     * Checks if the app has permission to write to device storage
+     *
+     * If the app does not has permission then the user will be prompted to grant permissions
+     *
+     * @param activity
+     */
+    public static void verifyStoragePermissions(Activity activity) {
+        // Check if we have write permission
+        int permission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+
+        if (permission != PackageManager.PERMISSION_GRANTED) {
+            // We don't have permission so prompt the user
+            ActivityCompat.requestPermissions(
+                    activity,
+                    PERMISSIONS_STORAGE,
+                    REQUEST_EXTERNAL_STORAGE
+            );
+        }
+    }
 
 
     //////////////////// menu /////////////////////
@@ -520,11 +555,11 @@ public class MainActivity extends ActionBarActivity {
     public void doShare() {
         // populate the share intent with data
         Intent shareIntent = new Intent(Intent.ACTION_SEND);
-        String mAbsPath =  new File(PATH+targetFileName).getAbsolutePath();
+        String mAbsPath =  new File(sdCard.getAbsolutePath()+ "/XKCD/"+targetFileName).getAbsolutePath();
 
         shareIntent.setType("image/*");
         shareIntent.putExtra(Intent.EXTRA_TEXT, mPreference.getString("description_"+Integer.toString(number),""));
-        shareIntent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(new File(PATH+targetFileName)));
+        shareIntent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(new File(sdCard.getAbsolutePath()+ "/XKCD/"+targetFileName)));
         startActivity(Intent.createChooser(shareIntent, "Share Via"));
 //        return shareIntent;
 //        startActivityForResult(Intent.createChooser(shareIntent, "Share Via"), Navigator.REQUEST_SHARE_ACTION);
