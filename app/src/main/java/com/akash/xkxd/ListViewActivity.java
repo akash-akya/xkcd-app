@@ -1,56 +1,42 @@
 package com.akash.xkxd;
 
-import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.net.Uri;
-import android.os.Environment;
+import android.database.SQLException;
+import android.provider.Settings;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
-import android.text.TextPaint;
-import android.text.style.URLSpan;
+import android.support.v7.widget.RecyclerView;
+import android.text.TextUtils;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.ListView;
 
-import java.io.File;
+import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 
-public class ListViewActivity extends ActionBarActivity {
+public class ListViewActivity extends ActionBarActivity implements ComicsListRecyclerViewAdapter.OnItemClickListener {
 
-    String PATH;
-    SharedPreferences mPreference;
-    File folder ;
-    List<String> mFilesList;
-    ArrayList<Integer> mFiles;
-    final String PREFIX = "title_";
-    ListView listView1;
-    ArrayAdapter<String> adapter;
-    File list[];
-    SwipeRefreshLayout swipeLayout;
+    private static final String TAG = "ListViewActivity";
+
+//    private List<String> mFilesList;
+//    private ListView comicsListView;
+//    private SwipeRefreshLayout swipeLayout;
+
+    private DataBaseHelper mDbHelper;
+    private ComicsListRecyclerViewAdapter myAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_list_view);
-        PATH = Environment.getExternalStorageDirectory()+ "/"+"XKCD";
-        folder = new File(PATH);
-        list = folder.listFiles();
-        mFilesList = new ArrayList<String>();
-        mFiles = new ArrayList<Integer>() ;
+        setContentView(R.layout.comics_list);
 
-        setTitle("XKCD Comics Browser");
+        setTitle("XKCD Comics");
 
-        mPreference = getSharedPreferences("XKCD_PREF", Context.MODE_PRIVATE);
-
-        swipeLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_container);
+/*        swipeLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_container);
         swipeLayout.setColorSchemeResources(android.R.color.holo_blue_bright,
                 android.R.color.holo_green_light,
                 android.R.color.holo_orange_light,
@@ -64,81 +50,83 @@ public class ListViewActivity extends ActionBarActivity {
                 intent.putExtra(getPackageName() + ".NUMBER", 0);
                 startActivity(intent);
             }
-        });
+        });*/
 
-//       try{
-//
-//           for(File file : list){
-//               String name = file.getName().replaceAll("[^0-9]","");
-//               if(!mPreference.getString(PREFIX + name, "").equals("")) {
-//                   mFiles.add(Integer.parseInt(name));
-//               }
-//           }
-//
-//           Collections.sort(mFiles);
-//
-//           for (Integer num : mFiles){
-//               mFilesList.add( num + " - " + mPreference.getString(PREFIX + num, ""));
-//           }
-//
-//       } catch (NullPointerException e){
-//           mFilesList.add("noFiles");
-//           Intent intent = new Intent(ListViewActivity.this, MainActivity.class);
-//           intent.putExtra(getPackageName() + ".NUMBER", 0);
-//           startActivity(intent);
-//       }
-
-
-        listView1 = (ListView) findViewById(R.id.listview);
-
-        adapter = new ArrayAdapter<String>(this,
-                android.R.layout.simple_list_item_1, mFilesList);
-
-        listView1.setAdapter(adapter);
-
-        listView1.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+/*        comicsListView = (ListView) findViewById(R.id.listview);
+        comicsListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view,int position, long id) {
-                int num = mFiles.get(position);
+                int num = Integer.parseInt(mFilesList.get(position));
                 Intent intent = new Intent(ListViewActivity.this, MainActivity.class);
                 intent.putExtra(getPackageName() + ".NUMBER", num);
                 startActivity(intent);
             }
-        });
+        });*/
+
+        if (mDbHelper != null)
+            mDbHelper.close();
+
+        mDbHelper = new DataBaseHelper(this);
+        try {
+            mDbHelper.createDataBase();
+
+        } catch (IOException ioe) {
+            throw new Error("Unable to create database");
+        }
+
+        try {
+            mDbHelper.openDataBase();
+        } catch(SQLException sqle){
+            throw sqle;
+        }
 
 
+        ArrayList<XkcdData> mComics = mDbHelper.getAllComics();
+
+        RecyclerView recyclerView = (RecyclerView) findViewById(R.id.rv_comics);
+        if (myAdapter == null){
+            final String format = Settings.System.getString(getContentResolver(), Settings.System.DATE_FORMAT);
+            DateFormat dateFormat;
+            if (TextUtils.isEmpty(format)) {
+                dateFormat = android.text.format.DateFormat.getMediumDateFormat(this);
+            } else {
+                dateFormat = new SimpleDateFormat(format);
+            }
+            Log.d(TAG, "onResume: "+ mComics.size());
+            myAdapter = new ComicsListRecyclerViewAdapter(mComics, dateFormat, this);
+        }
+        recyclerView.setAdapter(myAdapter);
     }
 
     @Override
     protected void onResume() {
+/*        if (mDbHelper != null)
+            mDbHelper.close();
 
-        try{
-        list = folder.listFiles();
-        mFiles.clear();
+        mDbHelper = new DataBaseHelper(this);
+        try {
+            mDbHelper.createDataBase();
 
-        for(File file : list){
-            String name = file.getName().replaceAll("[^0-9]","");
-            if(!mPreference.getString(PREFIX + name, "").equals("")) {
-                mFiles.add(Integer.parseInt(name));
-            }
+        } catch (IOException ioe) {
+            throw new Error("Unable to create database");
         }
 
-        Collections.sort(mFiles);
-        mFilesList.clear();
-
-        for (Integer num : mFiles){
-            mFilesList.add( num + " - " + mPreference.getString(PREFIX + num, ""));
+        try {
+            mDbHelper.openDataBase();
+        } catch(SQLException sqle){
+            throw sqle;
         }
-    } catch (NullPointerException e){
-        mFilesList.add("noFiles");
-        Intent intent = new Intent(ListViewActivity.this, MainActivity.class);
-        intent.putExtra(getPackageName() + ".NUMBER", 0);
-        startActivity(intent);
-    }
 
 
-    adapter.notifyDataSetChanged();
+        mComics = mDbHelper.getAllComics();*/
+//        Log.d(TAG, "onResume: "+mComics.size());
+//        mFilesList = getComicNumbers(mComics);
 
+//        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
+//                android.R.layout.simple_list_item_1, mFilesList);
+//
+//        comicsListView.setAdapter(adapter);
+        myAdapter.notifyDataSetChanged();
         super.onResume();
     }
 
@@ -146,8 +134,19 @@ public class ListViewActivity extends ActionBarActivity {
     protected void onPause() {
         super.onPause();
 
-        if(swipeLayout.isRefreshing())
-            swipeLayout.setRefreshing(false);
+        mDbHelper.close();
+
+/*        if(swipeLayout.isRefreshing())
+            swipeLayout.setRefreshing(false);*/
+    }
+
+    public static ArrayList<String> getComicNumbers(ArrayList<XkcdData> comics) {
+        ArrayList<String> nums = new ArrayList<>();
+        for(XkcdData c : comics) {
+            nums.add(String.valueOf(c.getNum()));
+//            Log.d(TAG, "getComicNumbers: "+c.getNum());
+        }
+        return nums;
     }
 
     @Override
@@ -179,4 +178,13 @@ public class ListViewActivity extends ActionBarActivity {
                 return super.onOptionsItemSelected(item);
         }
     }
+
+    @Override
+    public void onItemClick(XkcdData comic) {
+        Intent intent = new Intent(ListViewActivity.this, MainActivity.class);
+        intent.putExtra(getPackageName() + ".NUMBER", comic.getNum());
+        startActivity(intent);
+    }
+
+
 }

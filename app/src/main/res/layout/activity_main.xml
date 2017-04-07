@@ -119,14 +119,5 @@
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:indeterminate="true" />
-
-        <TextView
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:padding="20dp"
-            android:textSize="18dp"
-            android:text="Loading content"/>
-
     </LinearLayout>
 </LinearLayout>
