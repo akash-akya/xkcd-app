@@ -1,4 +1,4 @@
-package com.akash.xkxd;
+package com.akash.xkxd.util;
 
 import android.app.Activity;
 import android.content.ContentValues;
@@ -8,6 +8,8 @@ import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
+
+import com.akash.xkxd.XkcdData;
 
 import java.io.FileOutputStream;
 import java.io.IOException;

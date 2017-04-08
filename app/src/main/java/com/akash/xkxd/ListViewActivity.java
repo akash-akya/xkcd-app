@@ -3,7 +3,6 @@ package com.akash.xkxd;
 import android.content.Intent;
 import android.database.SQLException;
 import android.provider.Settings;
-import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.support.v7.widget.RecyclerView;
@@ -12,10 +11,19 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import com.akash.xkxd.util.DataBaseHelper;
+import com.akash.xkxd.util.XkcdJsonData;
+
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 
 public class ListViewActivity extends ActionBarActivity implements ComicsListRecyclerViewAdapter.OnItemClickListener {
@@ -96,6 +104,12 @@ public class ListViewActivity extends ActionBarActivity implements ComicsListRec
             myAdapter = new ComicsListRecyclerViewAdapter(mComics, dateFormat, this);
         }
         recyclerView.setAdapter(myAdapter);
+
+/*
+        for (int i=0; i<100; i++){
+            getRetrofitObject("https://xkcd.com/", i);
+        }
+*/
     }
 
     @Override
@@ -140,6 +154,42 @@ public class ListViewActivity extends ActionBarActivity implements ComicsListRec
             swipeLayout.setRefreshing(false);*/
     }
 
+    void getRetrofitObject(String url, int num) {
+
+        Log.d(TAG, "getRetrofitObject: "+url);
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(url)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        RequestInterface service = retrofit.create(RequestInterface.class);
+
+        Call<XkcdJsonData> call = service.getComic(num);
+
+        call.enqueue(new Callback<XkcdJsonData>() {
+            @Override
+            public void onResponse(Call<XkcdJsonData> call, Response<XkcdJsonData> response) {
+                if (response.body() != null){
+                    XkcdJsonData d = response.body();
+                    Log.d(TAG, "onResponse: "+d.getNum()+d.getTitle());
+                    XkcdData xkcdData = new XkcdData(Integer.parseInt(d.getNum()),
+                            d.getDay(), d.getMonth(), d.getYear(), d.getTitle(), d.getAlt(), d.getImg());
+                    if (mDbHelper.getComic(xkcdData.getNum()) == null) {
+                        mDbHelper.insertXkcd(xkcdData);
+                    }
+//                myAdapter.notifyDataSetChanged();
+                } else {
+                    Log.d(TAG, "onResponse: Null!");
+                }
+            }
+
+            @Override
+            public void onFailure(Call<XkcdJsonData> call, Throwable t) {
+
+            }
+        });
+    }
+
     public static ArrayList<String> getComicNumbers(ArrayList<XkcdData> comics) {
         ArrayList<String> nums = new ArrayList<>();
         for(XkcdData c : comics) {
@@ -168,12 +218,6 @@ public class ListViewActivity extends ActionBarActivity implements ComicsListRec
             case R.id.action_settings:
                 AboutApp.Show(ListViewActivity.this);
                 return true;
-
-            case R.id.action_whatif:
-                Intent intent = new Intent(this, WhatIf.class);
-                startActivity(intent);
-                return true;
-
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -181,7 +225,7 @@ public class ListViewActivity extends ActionBarActivity implements ComicsListRec
 
     @Override
     public void onItemClick(XkcdData comic) {
-        Intent intent = new Intent(ListViewActivity.this, MainActivity.class);
+        Intent intent = new Intent(ListViewActivity.this, ComicsActivity.class);
         intent.putExtra(getPackageName() + ".NUMBER", comic.getNum());
         startActivity(intent);
     }
