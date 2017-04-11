@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="progress_spinner">#424242</color>
-    <color name="colorAccent">#555555</color>
+    <color name="primary">#353535</color>
+    <color name="primary_dark">#212121</color>
+    <color name="primary_light">#C5C5C5</color>
+    <color name="accent">#757575</color>
+    <color name="primary_text">#212121</color>
+    <color name="secondary_text">#757575</color>
+    <color name="icons">#FFFFFF</color>
+    <color name="divider">#BDBDBD</color>
 </resources>

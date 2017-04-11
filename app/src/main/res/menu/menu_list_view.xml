@@ -2,6 +2,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools" tools:context="com.akash.xkxd.ListViewActivity">
     <item android:id="@+id/action_whatif" android:title="What-If"/>
-    <item android:id="@+id/action_settings" android:title="@string/action_settings"
+    <item android:id="@+id/action_download_all" android:title="Update database"/>
+    <item android:id="@+id/action_settings" android:title="About App"
         android:orderInCategory="100" app:showAsAction="never" />
 </menu>

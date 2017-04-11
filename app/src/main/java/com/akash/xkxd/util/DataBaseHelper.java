@@ -235,8 +235,8 @@ public class DataBaseHelper extends SQLiteOpenHelper {
             String day = cursor.getString(1);
             String month = cursor.getString(2);
             String year = cursor.getString(3);
-            String title = cursor.getString(5);
-            String alt = cursor.getString(4);
+            String title = cursor.getString(4);
+            String alt = cursor.getString(5);
             String img = cursor.getString(6);
 
             comic = new XkcdData(num, day, month, year, title, alt, img);
@@ -245,6 +245,32 @@ public class DataBaseHelper extends SQLiteOpenHelper {
         db.close();
         return comic;
     }
+
+    public int getMaxNumber() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        String sql = "SELECT Max("+ KEY_NUM +") FROM "+DATABASE_XKCD;
+        Cursor cursor;
+        int num = 0;
+
+        try
+        {
+            cursor = db.rawQuery(sql,null);
+
+            if (cursor != null && cursor.getCount() > 0) {
+                cursor.moveToFirst();
+                num = cursor.getInt(0);
+                cursor.close();
+            }
+        }
+        catch (SQLException mSQLException)
+        {
+            mSQLException.printStackTrace();
+        }
+
+        db.close();
+        return num;
+    }
+
 
     // Add your public helper methods to access and get content from the database.
     // You could return cursors by doing "return myDataBase.query(....)" so it'd be easy
