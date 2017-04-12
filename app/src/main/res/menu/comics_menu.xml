@@ -2,14 +2,22 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools" tools:context="com.akash.xkxd.ListViewActivity">
 
+    <item
+        android:id="@+id/action_favorite"
+        android:orderInCategory="100"
+        android:title="Favorite"
+        android:icon="@drawable/ic_star_border_white_24dp"
+        app:showAsAction="always" />
+
     <item  android:id="@+id/action_search"
         android:icon="@drawable/ic_action_search"
         app:showAsAction="ifRoom|collapseActionView"
         app:actionViewClass="android.support.v7.widget.SearchView"
         android:title="@string/app_name"/>
 
-    <item android:id="@+id/action_explain" android:title="Explain xkcd"/>
     <item android:id="@+id/action_share" android:title="Share"/>
-    <item android:id="@+id/action_browse" android:title="Browse xkcd"/>
-    <item android:id="@+id/action_get_latest" android:title="Get Latest"/>
+    <item android:id="@+id/action_explain" android:title="Explain xkcd"/>
+    <item android:id="@+id/action_browse" android:title="Browse"/>
+    <item android:id="@+id/action_browse_favorite" android:title="Browse Favorite"/>
+    <item android:id="@+id/action_get_latest" android:title="Latest"/>
 </menu>

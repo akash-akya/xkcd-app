@@ -1,6 +1,5 @@
 package com.akash.xkxd.util;
 
-import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -9,14 +8,11 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
 
-import com.akash.xkxd.XkcdData;
-
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.NoSuchElementException;
 
 public class DataBaseHelper extends SQLiteOpenHelper {
 
@@ -28,8 +24,9 @@ public class DataBaseHelper extends SQLiteOpenHelper {
     private static final String KEY_ALT = "alt";
     private static final String KEY_TITLE = "title";
     private static final String KEY_IMG = "img";
+    private static final String KEY_FAVORITE = "favorite";
+    private static final String TAG = "DataBaseHelper";
 
-    //The Android's default system path of your application database.
     private static String DB_PATH;
 
     private static String DB_NAME = "myDBName";
@@ -38,11 +35,6 @@ public class DataBaseHelper extends SQLiteOpenHelper {
 
     private final Context myContext;
 
-    /**
-     * Constructor
-     * Takes and keeps a reference of the passed context in order to access to the application assets and resources.
-     * @param context
-     */
     public DataBaseHelper(Context context) {
 
         super(context, DB_NAME, null, 1);
@@ -50,107 +42,68 @@ public class DataBaseHelper extends SQLiteOpenHelper {
         DB_PATH = "/data/data/"+context.getPackageName()+"/databases/";
     }
 
-    /**
-     * Creates a empty database on the system and rewrites it with your own database.
-     * */
     public void createDataBase() throws IOException {
 
         boolean dbExist = checkDataBase();
 
         if(dbExist){
-            //do nothing - database already exist
+//            Log.d(TAG, "createDataBase: Database Exists");
         }else{
-
-            //By calling this method and empty database will be created into the default system path
-            //of your application so we are gonna be able to overwrite that database with our database.
             this.getReadableDatabase();
 
             try {
-
                 copyDataBase();
-
             } catch (IOException e) {
-
                 throw new Error("Error copying database");
-
             }
         }
 
     }
 
-    /**
-     * Check if the database already exist to avoid re-copying the file each time you open the application.
-     * @return true if it exists, false if it doesn't
-     */
     private boolean checkDataBase(){
-
         SQLiteDatabase checkDB = null;
 
         try{
             String myPath = DB_PATH + DB_NAME;
             checkDB = SQLiteDatabase.openDatabase(myPath, null, SQLiteDatabase.OPEN_READWRITE);
-
         }catch(SQLiteException e){
-
-            //database does't exist yet.
-
+            e.printStackTrace();
         }
 
         if(checkDB != null){
-
             checkDB.close();
-
         }
 
-        return checkDB != null ? true : false;
+        return checkDB != null;
     }
 
-    /**
-     * Copies your database from your local assets-folder to the just created empty database in the
-     * system folder, from where it can be accessed and handled.
-     * This is done by transfering bytestream.
-     * */
     private void copyDataBase() throws IOException{
-
-        //Open your local db as the input stream
         InputStream myInput = myContext.getAssets().open(DB_NAME);
-
-        // Path to the just created empty db
         String outFileName = DB_PATH + DB_NAME;
 
-        //Open the empty db as the output stream
         OutputStream myOutput = new FileOutputStream(outFileName);
 
-        //transfer bytes from the inputfile to the outputfile
         byte[] buffer = new byte[1024];
         int length;
         while ((length = myInput.read(buffer))>0){
             myOutput.write(buffer, 0, length);
         }
 
-        //Close the streams
         myOutput.flush();
         myOutput.close();
         myInput.close();
-
     }
 
     public void openDataBase() throws SQLException {
-
-        //Open the database
         String myPath = DB_PATH + DB_NAME;
         myDataBase = SQLiteDatabase.openDatabase(myPath, null, SQLiteDatabase.OPEN_READWRITE);
-
     }
 
     @Override
     public synchronized void close() {
-
         if(myDataBase != null)
             myDataBase.close();
-
         super.close();
-
     }
 
     @Override
@@ -162,7 +115,8 @@ public class DataBaseHelper extends SQLiteOpenHelper {
                 KEY_YEAR + " TEXT NOT NULL, " +
                 KEY_TITLE + " TEXT, " +
                 KEY_ALT + " TEXT, " +
-                KEY_IMG + " TEXT);"
+                KEY_IMG + " TEXT, " +
+                KEY_FAVORITE + " INTEGER);"
         );
     }
 
@@ -175,11 +129,12 @@ public class DataBaseHelper extends SQLiteOpenHelper {
         cv.put(KEY_TITLE, xkcd.getTitle());
         cv.put(KEY_ALT, xkcd.getAlt());
         cv.put(KEY_IMG, xkcd.getImg());
+        cv.put(KEY_FAVORITE, xkcd.getFavorite());
         return myDataBase.insert(DATABASE_XKCD, null, cv);
     }
 
     public ArrayList<XkcdData> getAllComics(){
-        ArrayList<XkcdData> contactList = new ArrayList<>();
+        ArrayList<XkcdData> comics = new ArrayList<>();
         String selectQuery = "SELECT " +
                 KEY_NUM + ", " +
                 KEY_DAY + ", " +
@@ -187,7 +142,8 @@ public class DataBaseHelper extends SQLiteOpenHelper {
                 KEY_YEAR + ", " +
                 KEY_TITLE + ", " +
                 KEY_ALT + ", " +
-                KEY_IMG +
+                KEY_IMG + ", " +
+                KEY_FAVORITE +
                 " FROM " + DATABASE_XKCD;
 
         SQLiteDatabase db = this.getWritableDatabase();
@@ -202,16 +158,18 @@ public class DataBaseHelper extends SQLiteOpenHelper {
                 String title = cursor.getString(4);
                 String alt = cursor.getString(5);
                 String img = cursor.getString(6);
+                int favorite = cursor.getInt(7);
 
-                XkcdData xkcdData = new XkcdData(num, day, month, year, title, alt, img);
+                XkcdData xkcdData = new XkcdData(num, day, month, year,
+                        title, alt, img, favorite);
 
-                contactList.add(xkcdData);
+                comics.add(xkcdData);
             } while (cursor.moveToNext());
         }
 
         cursor.close();
         db.close();
-        return contactList;
+        return comics;
     }
 
     @Override
@@ -223,7 +181,7 @@ public class DataBaseHelper extends SQLiteOpenHelper {
     public XkcdData getComic(int num) {
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.query(DATABASE_XKCD, new String[] { KEY_NUM,  KEY_DAY,  KEY_MONTH,
-                KEY_YEAR, KEY_TITLE, KEY_ALT,  KEY_IMG},
+                KEY_YEAR, KEY_TITLE, KEY_ALT,  KEY_IMG, KEY_FAVORITE},
                 KEY_NUM + "=?",
                 new String[] { String.valueOf(num) }, null, null, null, null);
 
@@ -238,8 +196,9 @@ public class DataBaseHelper extends SQLiteOpenHelper {
             String title = cursor.getString(4);
             String alt = cursor.getString(5);
             String img = cursor.getString(6);
+            int favorite = cursor.getInt(7);
 
-            comic = new XkcdData(num, day, month, year, title, alt, img);
+            comic = new XkcdData(num, day, month, year, title, alt, img, favorite);
             cursor.close();
         }
         db.close();
@@ -252,8 +211,7 @@ public class DataBaseHelper extends SQLiteOpenHelper {
         Cursor cursor;
         int num = 0;
 
-        try
-        {
+        try {
             cursor = db.rawQuery(sql,null);
 
             if (cursor != null && cursor.getCount() > 0) {
@@ -261,9 +219,7 @@ public class DataBaseHelper extends SQLiteOpenHelper {
                 num = cursor.getInt(0);
                 cursor.close();
             }
-        }
-        catch (SQLException mSQLException)
-        {
+        } catch (SQLException mSQLException) {
             mSQLException.printStackTrace();
         }
 
@@ -271,9 +227,40 @@ public class DataBaseHelper extends SQLiteOpenHelper {
         return num;
     }
 
+    public long setFavorite(int num, boolean state) {
+        ContentValues cv = new ContentValues();
+        cv.put(KEY_FAVORITE, state? 1 : 0);
+        return myDataBase.update(DATABASE_XKCD, cv, KEY_NUM+"="+num, null);
+    }
 
-    // Add your public helper methods to access and get content from the database.
-    // You could return cursors by doing "return myDataBase.query(....)" so it'd be easy
-    // to you to create adapters for your views.
+    public ArrayList<XkcdData> getFavoriteComics() {
+        ArrayList<XkcdData> comics = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.query(DATABASE_XKCD, new String[] { KEY_NUM,  KEY_DAY,  KEY_MONTH,
+                        KEY_YEAR, KEY_TITLE, KEY_ALT,  KEY_IMG, KEY_FAVORITE},
+                KEY_FAVORITE + "=?",
+                new String[] { String.valueOf(1) }, null, null, null, null);
 
+        if (cursor.moveToFirst()) {
+            do {
+                int num = Integer.parseInt(cursor.getString(0));
+                String day = cursor.getString(1);
+                String month = cursor.getString(2);
+                String year = cursor.getString(3);
+                String title = cursor.getString(4);
+                String alt = cursor.getString(5);
+                String img = cursor.getString(6);
+                int favorite = cursor.getInt(7);
+
+                XkcdData xkcdData = new XkcdData(num, day, month, year,
+                        title, alt, img, favorite);
+
+                comics.add(xkcdData);
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+        db.close();
+        return comics;
+    }
 }

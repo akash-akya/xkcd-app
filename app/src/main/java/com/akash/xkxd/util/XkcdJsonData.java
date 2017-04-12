@@ -12,6 +12,7 @@ public class XkcdJsonData {
     private String img;
     private String title;
     private String day;
+//    private int favorite;
 
     public String getMonth() {
         return month;

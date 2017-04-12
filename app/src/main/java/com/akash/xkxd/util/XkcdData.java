@@ -1,4 +1,4 @@
-package com.akash.xkxd;
+package com.akash.xkxd.util;
 
 import java.io.Serializable;
 
@@ -10,8 +10,10 @@ public class XkcdData implements Serializable{
     private String mTitle;
     private String mAlt;
     private String mImg;
+    private boolean mFavorite;
 
-    public XkcdData(int num, String day, String month, String year, String title, String alt, String img){
+    public XkcdData(int num, String day, String month, String year, String title,
+                    String alt, String img, int favorite){
         mDay = day;
         mMonth = month;
         mYear = year;
@@ -19,6 +21,7 @@ public class XkcdData implements Serializable{
         mTitle = title;
         mAlt = alt;
         mImg = img;
+        mFavorite = (favorite != 0);
     }
 
     public String getDay() {
@@ -47,5 +50,9 @@ public class XkcdData implements Serializable{
 
     public String getImg() {
         return mImg;
+    }
+
+    public boolean getFavorite() {
+        return  mFavorite;
     }
 }

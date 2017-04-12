@@ -5,21 +5,18 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.SQLException;
-import android.graphics.Bitmap;
-import android.os.AsyncTask;
 import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.SearchView;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
 import com.akash.xkxd.util.DataBaseHelper;
-import com.akash.xkxd.util.XkcdJsonData;
+import com.akash.xkxd.util.XkcdData;
 
 import java.io.IOException;
 import java.text.DateFormat;
@@ -27,26 +24,15 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
-
-public class ListViewActivity extends ActionBarActivity implements ComicsListRecyclerViewAdapter.OnItemClickListener {
-
+public class ListViewActivity extends AppCompatActivity implements ComicsListRecyclerViewAdapter.OnItemClickListener {
     private static final String TAG = "ListViewActivity";
+    public static final String ARG_FAVORITE = "FAVORITE";
 
-//    private List<String> mFilesList;
-//    private ListView comicsListView;
-//    private SwipeRefreshLayout swipeLayout;
-
-    private static DataBaseHelper mDbHelper;
-    private ComicsListRecyclerViewAdapter myAdapter;
-    private DateFormat mDateFormat;
-    private RecyclerView mRecyclerView;
+    private static DataBaseHelper sDbHelper;
+    private ComicsListRecyclerViewAdapter mAdapter;
     private ArrayList<XkcdData> mComics;
+    private boolean mIsFavorite;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,80 +41,51 @@ public class ListViewActivity extends ActionBarActivity implements ComicsListRec
 
         setTitle("XKCD Comics");
 
-        verifyStoragePermissions(this);
+        if (sDbHelper != null)
+            sDbHelper.close();
 
-        if (mDbHelper != null)
-            mDbHelper.close();
-
-        mDbHelper = new DataBaseHelper(this);
+        sDbHelper = new DataBaseHelper(this);
         try {
-            mDbHelper.createDataBase();
+            sDbHelper.createDataBase();
 
         } catch (IOException ioe) {
             throw new Error("Unable to create database");
         }
 
         try {
-            mDbHelper.openDataBase();
+            sDbHelper.openDataBase();
         } catch(SQLException sqle){
             throw sqle;
         }
 
+        mIsFavorite = getIntent().getBooleanExtra(ARG_FAVORITE, false);
+        Log.d(TAG, "onCreate: "+mIsFavorite);
+        mComics = getComicsFromDb(mIsFavorite);
 
-        mComics = mDbHelper.getAllComics();
-
-        mRecyclerView = (RecyclerView) findViewById(R.id.rv_comics);
+        RecyclerView mRecyclerView = (RecyclerView) findViewById(R.id.rv_comics);
         final String format = Settings.System.getString(getContentResolver(), Settings.System.DATE_FORMAT);
+        DateFormat mDateFormat;
         if (TextUtils.isEmpty(format)) {
             mDateFormat = android.text.format.DateFormat.getMediumDateFormat(this);
         } else {
             mDateFormat = new SimpleDateFormat(format);
         }
         Log.d(TAG, "onCreate: "+ mComics.size());
-        myAdapter = new ComicsListRecyclerViewAdapter(mComics, mDateFormat, this);
-        mRecyclerView.setAdapter(myAdapter);
+        mAdapter = new ComicsListRecyclerViewAdapter(mComics, mDateFormat, this);
+        mRecyclerView.setAdapter(mAdapter);
 
 /*        for (int i=0; i<10; i++){
             getRetrofitObject("https://xkcd.com/", i);
         }*/
     }
 
-    // Storage Permissions
-    private static final int REQUEST_EXTERNAL_STORAGE = 1;
-    private static String[] PERMISSIONS_STORAGE = {
-            Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE
-    };
-
-    /**
-     * Checks if the app has permission to write to device storage
-     *
-     * If the app does not has permission then the user will be prompted to grant permissions
-     *
-     * @param activity
-     */
-    public static void verifyStoragePermissions(Activity activity) {
-        // Check if we have write permission
-        int permission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
-
-        if (permission != PackageManager.PERMISSION_GRANTED) {
-            // We don't have permission so prompt the user
-            ActivityCompat.requestPermissions(
-                    activity,
-                    PERMISSIONS_STORAGE,
-                    REQUEST_EXTERNAL_STORAGE
-            );
-        }
-    }
-
-
     @Override
     protected void onResume() {
-        ArrayList<XkcdData> t = mDbHelper.getAllComics();
+        ArrayList<XkcdData> t = getComicsFromDb(mIsFavorite);
         if (t.size() > mComics.size()) {
             Log.d(TAG, "onResume: "+mComics.size()+" - "+t.size());
             mComics.addAll(t.subList(mComics.size()-1,t.size()));
-            myAdapter.notifyDataSetChanged();
+            mAdapter.notifyDataSetChanged();
         }
         super.onResume();
     }
@@ -136,98 +93,45 @@ public class ListViewActivity extends ActionBarActivity implements ComicsListRec
     @Override
     protected void onPause() {
         super.onPause();
-        mDbHelper.close();
+        sDbHelper.close();
     }
 
     public static ArrayList<String> getComicNumbers(ArrayList<XkcdData> comics) {
         ArrayList<String> nums = new ArrayList<>();
         for(XkcdData c : comics) {
             nums.add(String.valueOf(c.getNum()));
-//            Log.d(TAG, "getComicNumbers: "+c.getNum());
         }
         return nums;
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_list_view, menu);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
         switch (item.getItemId()) {
-            //noinspection SimplifiableIfStatement
             case R.id.action_settings:
                 AboutApp.Show(ListViewActivity.this);
-                return true;
-            case R.id.action_download_all:
-                updateDatabase();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
     }
 
-    class DownloadTask extends AsyncTask<Void, Void, Void> {
-
-        @Override
-        protected Void doInBackground(Void... params) {
-            for (int i=1; i<100; i++) {
-                try {
-                    RequestInterface requestInterface = new Retrofit.Builder()
-                            .baseUrl("https://xkcd.com/")
-                            .addConverterFactory(GsonConverterFactory.create())
-                            .build().create(RequestInterface.class);
-
-                    Call<XkcdJsonData> call = requestInterface.getComic(i);
-                    XkcdJsonData d = call.execute().body();
-                    Log.d(TAG, "updateDatabase: "+i);
-
-                    XkcdData comic = new XkcdData(Integer.parseInt(d.getNum()),
-                            d.getDay(), d.getMonth(), d.getYear(), d.getTitle(), d.getAlt(), d.getImg());
-
-                    DataBaseHelper db = new DataBaseHelper(getBaseContext());
-                    try {
-                        db.createDataBase();
-                    } catch (IOException ioe) {
-                        throw new Error("Unable to create database");
-                    }
-
-                    try {
-                        db.openDataBase();
-                    } catch(SQLException sqle){
-                        throw sqle;
-                    }
-
-                    if (db.getComic(comic.getNum()) == null) {
-                        db.insertXkcd(comic);
-                    }
-                    db.close();
-
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            return null;
-        }
-    }
-
-    private void updateDatabase() {
-        new DownloadTask().execute();
-    }
-
     @Override
     public void onItemClick(XkcdData comic) {
         Intent intent = new Intent(ListViewActivity.this, ComicsActivity.class);
-        intent.putExtra(getPackageName() + ".NUMBER", comic.getNum());
+        intent.putExtra(ComicsActivity.ARG_COMIC_NUMBER, comic.getNum());
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        setResult(Activity.RESULT_OK, intent);
         startActivity(intent);
+        finish();
     }
 
+    public ArrayList<XkcdData> getComicsFromDb(boolean isFavorite) {
+        return isFavorite ? sDbHelper.getFavoriteComics(): sDbHelper.getAllComics();
+    }
 }

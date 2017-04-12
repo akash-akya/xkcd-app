@@ -1,8 +1,6 @@
 package com.akash.xkxd;
 
-import android.app.Dialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.database.SQLException;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -16,15 +14,13 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
-import android.widget.TextView;
-import android.widget.Toast;
 
 import com.akash.xkxd.util.DataBaseHelper;
 import com.akash.xkxd.util.TouchImageView;
 import com.akash.xkxd.util.Util;
+import com.akash.xkxd.util.XkcdData;
 import com.akash.xkxd.util.XkcdJsonData;
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Target;
@@ -41,10 +37,10 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class ImageFragment extends Fragment {
     private static final String TAG = "ImageFragment";
-    private static DataBaseHelper mDbHelper;
-    private static ActionBar mActionBar;
-    private static OnImgDownloadListener mOnImgDownloadListener;
-    private int num;
+    private static DataBaseHelper sDbHelper;
+    private static ActionBar sActionBar;
+    private static OnImgDownloadListener sOnImgDownloadListener;
+    private int mNum;
 
     static ImageFragment init(DataBaseHelper dbHelper, int val, ActionBar actionBar,
                               OnImgDownloadListener onImgDownloadListener) {
@@ -53,26 +49,24 @@ public class ImageFragment extends Fragment {
         args.putInt("val", val);
         frag.setArguments(args);
 
-        mOnImgDownloadListener = onImgDownloadListener;
+        sOnImgDownloadListener = onImgDownloadListener;
 
-        mDbHelper = dbHelper;
-        mActionBar = actionBar;
+        sDbHelper = dbHelper;
+        sActionBar = actionBar;
+
         return frag;
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        num = getArguments() != null ? getArguments().getInt("val") : 1;
+        mNum = getArguments() != null ? getArguments().getInt("val") : 1;
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        View layoutView = inflater.inflate(R.layout.comic_image_view, container,
-                false);
-//        Log.d(TAG, "onCreateView: "+num);
-//        XkcdData comic = mComics.get(position);
+        View layoutView = inflater.inflate(R.layout.comic_image_view, container, false);
 
         TouchImageView imgView = (TouchImageView) layoutView.findViewById(R.id.imageView1);
         ProgressBar progressBar = (ProgressBar) layoutView.findViewById(R.id.progress_bar);
@@ -82,10 +76,10 @@ public class ImageFragment extends Fragment {
 
         progressBar.setVisibility(View.VISIBLE);
 
-        final XkcdData comic = mDbHelper.getComic(num);
+        final XkcdData comic = sDbHelper.getComic(mNum);
 
         if (comic == null){
-            getRetrofitObject(getContext() ,"https://xkcd.com/", num, imgView, progressBar);
+            getRetrofitObject(getContext() ,"https://xkcd.com/", mNum, imgView, progressBar);
         } else{
             setOrLoadComic(getContext(), comic, imgView, progressBar);
         }
@@ -94,16 +88,15 @@ public class ImageFragment extends Fragment {
 
     static void setOrLoadComic(final Context context, final XkcdData comic, TouchImageView imgView,
                                ProgressBar progressBar) {
-//        mActionBar.setTitle(comic.getTitle());
-        mOnImgDownloadListener.onImgDownload(comic);
+        sOnImgDownloadListener.onImgDownload(comic);
         imgView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (context != null) {
-                    if(mActionBar.isShowing()){
-                        mActionBar.hide();
+                    if(sActionBar.isShowing()){
+                        sActionBar.hide();
                     }else {
-                        mActionBar.show();
+                        sActionBar.show();
                     }
                 }
             }
@@ -112,7 +105,6 @@ public class ImageFragment extends Fragment {
         imgView.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
-//                Toast.makeText(context, comic.getAlt(),Toast.LENGTH_LONG).show();
                 showAltDialog(context, comic);
                 return false;
             }
@@ -152,9 +144,10 @@ public class ImageFragment extends Fragment {
             public void onResponse(Call<XkcdJsonData> call, Response<XkcdJsonData> response) {
                 if (response.body() != null){
                     XkcdJsonData d = response.body();
-                    Log.d(TAG, "onResponse: "+d.getNum()+" - "+d.getTitle());
+                    // Log.d(TAG, "onResponse: "+d.getNum()+" - "+d.getTitle());
                     XkcdData comic = new XkcdData(Integer.parseInt(d.getNum()),
-                            d.getDay(), d.getMonth(), d.getYear(), d.getTitle(), d.getAlt(), d.getImg());
+                            d.getDay(), d.getMonth(), d.getYear(), d.getTitle(), d.getAlt(),
+                            d.getImg(), 0);
 
                     DataBaseHelper db = new DataBaseHelper(context);
                     try {
@@ -174,7 +167,6 @@ public class ImageFragment extends Fragment {
                     }
                     db.close();
                     setOrLoadComic(context, comic, imgView, progressBar);
-//                myAdapter.notifyDataSetChanged();
                 } else {
                     Log.d(TAG, "onResponse: Null!");
                 }
@@ -231,7 +223,6 @@ public class ImageFragment extends Fragment {
 
             @Override
             public void onPrepareLoad(Drawable placeHolderDrawable) {
-//                   Log.d(TAG, "onPrepareLoad: ");
             }
         };
         return target;
