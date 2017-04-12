@@ -164,7 +164,7 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
         }
 
         public void UpdateComics(ArrayList<XkcdData> comics) {
-            mComics.addAll(comics.subList(mComics.size()-1, comics.size()));
+            mComics.addAll(comics.subList(mComics.size(), comics.size()));
             maxNumber = Collections.max(mComics, comparator).getNum();
         }
     }
@@ -330,6 +330,7 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
                         db.insertXkcd(comic);
                         sAdapter.UpdateComics(sDbHelper.getAllComics());
                     }
+                    sAdapter.notifyDataSetChanged();
                     sViewPager.setCurrentItem(comic.getNum());
                     db.close();
                 } else {
