@@ -112,7 +112,7 @@ public class ImageFragment extends Fragment {
         imgView.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
-                showAltDialog(context, comic);
+                showAltDialog(context, comic.getTitle()+" ("+comic.getNum()+")",comic.getAlt());
                 return false;
             }
         });
@@ -247,10 +247,10 @@ public class ImageFragment extends Fragment {
         void onImgDownload(XkcdData comic);
     }
 
-    static void showAltDialog(Context context, XkcdData comic){
+    static void showAltDialog(Context context, String title, String text){
         new AlertDialog.Builder(context)
-                .setTitle(comic.getTitle()+" ("+comic.getNum()+")")
-                .setMessage(comic.getAlt())
+                .setTitle(title)
+                .setMessage(text)
                 .show();
     }
 }

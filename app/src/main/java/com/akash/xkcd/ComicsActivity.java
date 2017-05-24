@@ -266,8 +266,10 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
                 return true;
 
             case R.id.action_transcript:
-                if (sDbHelper.getComic(sViewPager.getCurrentItem()) != null)
-                    showAltDialog(this, sDbHelper.getComic(sViewPager.getCurrentItem()));
+                if (sDbHelper.getComic(sViewPager.getCurrentItem()) != null){
+                    XkcdData c = sDbHelper.getComic(sViewPager.getCurrentItem());
+                    showAltDialog(this, c.getTitle()+" ("+c.getNum()+")", c.getTranscript());
+                }
                 return true;
 
             default:
