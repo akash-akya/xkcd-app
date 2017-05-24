@@ -1,4 +1,4 @@
-package com.akash.xkxd;
+package com.akash.xkcd;
 
 import android.content.Context;
 import android.database.SQLException;
@@ -10,6 +10,7 @@ import android.os.Environment;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -17,13 +18,16 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 
-import com.akash.xkxd.util.DataBaseHelper;
-import com.akash.xkxd.util.TouchImageView;
-import com.akash.xkxd.util.Util;
-import com.akash.xkxd.util.XkcdData;
-import com.akash.xkxd.util.XkcdJsonData;
+import com.akash.xkcd.util.DataBaseHelper;
+import com.akash.xkcd.util.TouchImageView;
+import com.akash.xkcd.util.Util;
+import com.akash.xkcd.util.XkcdData;
+import com.akash.xkcd.util.XkcdJsonData;
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Target;
+
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -38,9 +42,11 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class ImageFragment extends Fragment {
     private static final String TAG = "ImageFragment";
     private static DataBaseHelper sDbHelper;
-    private static ActionBar sActionBar;
-    private static OnImgDownloadListener sOnImgDownloadListener;
+    private ActionBar mActionBar;
+    private OnImgDownloadListener sOnImgDownloadListener;
     private int mNum;
+    private TouchImageView imgView;
+    private ProgressBar progressBar;
 
     static ImageFragment init(DataBaseHelper dbHelper, int val, ActionBar actionBar,
                               OnImgDownloadListener onImgDownloadListener) {
@@ -48,28 +54,29 @@ public class ImageFragment extends Fragment {
         Bundle args = new Bundle();
         args.putInt("val", val);
         frag.setArguments(args);
-
-        sOnImgDownloadListener = onImgDownloadListener;
-
         sDbHelper = dbHelper;
-        sActionBar = actionBar;
-
         return frag;
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        ComicsActivity activity = (ComicsActivity) getActivity();
+        sOnImgDownloadListener = activity;
+        mActionBar = activity.getSupportActionBar();
+
         mNum = getArguments() != null ? getArguments().getInt("val") : 1;
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+
         View layoutView = inflater.inflate(R.layout.comic_image_view, container, false);
 
-        TouchImageView imgView = (TouchImageView) layoutView.findViewById(R.id.imageView1);
-        ProgressBar progressBar = (ProgressBar) layoutView.findViewById(R.id.progress_bar);
+        imgView = (TouchImageView) layoutView.findViewById(R.id.imageView1);
+        progressBar = (ProgressBar) layoutView.findViewById(R.id.progress_bar);
 
         imgView.setScaleType(ImageView.ScaleType.CENTER);
         imgView.setVisibility(View.GONE);
@@ -77,26 +84,26 @@ public class ImageFragment extends Fragment {
         progressBar.setVisibility(View.VISIBLE);
 
         final XkcdData comic = sDbHelper.getComic(mNum);
+//        Log.d(TAG, "onCreateView: "+mNum + " id: "+imgView.getId());
 
         if (comic == null){
-            getRetrofitObject(getContext() ,"https://xkcd.com/", mNum, imgView, progressBar);
+            getRetrofitObject(getContext() ,"https://xkcd.com/", mNum);
         } else{
-            setOrLoadComic(getContext(), comic, imgView, progressBar);
+            setOrLoadComic(getContext(), comic);
         }
         return layoutView;
     }
 
-    static void setOrLoadComic(final Context context, final XkcdData comic, TouchImageView imgView,
-                               ProgressBar progressBar) {
+    void setOrLoadComic(final Context context, final XkcdData comic) {
         sOnImgDownloadListener.onImgDownload(comic);
         imgView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (context != null) {
-                    if(sActionBar.isShowing()){
-                        sActionBar.hide();
+                    if(mActionBar.isShowing()){
+                        mActionBar.hide();
                     }else {
-                        sActionBar.show();
+                        mActionBar.show();
                     }
                 }
             }
@@ -117,19 +124,20 @@ public class ImageFragment extends Fragment {
             progressBar.setVisibility(View.GONE);
             imgView.setVisibility(View.VISIBLE);
         } else {
-            Log.d(TAG, "setOrLoadComic: Get from web");
+//            Log.d(TAG, "setOrLoadComic: Get from web");
+            Target target = getTarget(comic.getNum());
+            imgView.setTag(target);
             Picasso.with(context)
                     .load(comic.getImg())
                     .placeholder(R.color.accent)
                     .priority(Picasso.Priority.HIGH)
-                    .into(getTarget(comic.getNum(), imgView, progressBar));
+                    .into(target);
         }
     }
 
-    static void getRetrofitObject(final Context context, String url, int num, final TouchImageView imgView,
-                                  final ProgressBar progressBar) {
+    void getRetrofitObject(final Context context, String url, int num) {
 
-        Log.d(TAG, "getRetrofitObject: "+url);
+//        Log.d(TAG, "getRetrofitObject: "+url);
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(url)
                 .addConverterFactory(GsonConverterFactory.create())
@@ -144,10 +152,10 @@ public class ImageFragment extends Fragment {
             public void onResponse(Call<XkcdJsonData> call, Response<XkcdJsonData> response) {
                 if (response.body() != null){
                     XkcdJsonData d = response.body();
-                    // Log.d(TAG, "onResponse: "+d.getNum()+" - "+d.getTitle());
+//                     Log.d(TAG, "onResponse: "+d.getNum()+" - "+d.getTitle());
                     XkcdData comic = new XkcdData(Integer.parseInt(d.getNum()),
                             d.getDay(), d.getMonth(), d.getYear(), d.getTitle(), d.getAlt(),
-                            d.getImg(), 0);
+                            d.getImg(), d.getTranscript(),0);
 
                     DataBaseHelper db = new DataBaseHelper(context);
                     try {
@@ -166,7 +174,7 @@ public class ImageFragment extends Fragment {
                         db.insertXkcd(comic);
                     }
                     db.close();
-                    setOrLoadComic(context, comic, imgView, progressBar);
+                    setOrLoadComic(context, comic);
                 } else {
                     Log.d(TAG, "onResponse: Null!");
                 }
@@ -179,18 +187,25 @@ public class ImageFragment extends Fragment {
         });
     }
 
+    @Subscribe(threadMode = ThreadMode.POSTING)
+    public void doThis(XkcdData comic){
+        setOrLoadComic(getContext(),comic);
+    }
+
     //target to save
-    private static Target getTarget(final int num, final TouchImageView imageView, final ProgressBar progressBar){
+    private Target getTarget(final int num){
         Target target = new Target(){
 
             @Override
             public void onBitmapLoaded(final Bitmap bitmap, Picasso.LoadedFrom from) {
-                Log.d(TAG, "onBitmapLoaded: IMG");
-                imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
-                imageView.setImageBitmap(bitmap);
+//                Log.d(TAG, "onBitmapLoaded: IMG");
+                imgView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                imgView.setImageBitmap(bitmap);
 
                 progressBar.setVisibility(View.GONE);
-                imageView.setVisibility(View.VISIBLE);
+                imgView.setVisibility(View.VISIBLE);
+
+                Log.d(TAG, "onBitmapLoaded: " + num + " id: "+imgView.getId());
 
                 new Thread(new Runnable() {
                     @Override

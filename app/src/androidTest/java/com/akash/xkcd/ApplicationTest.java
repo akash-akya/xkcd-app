@@ -1,4 +1,4 @@
-package com.akash.xkxd;
+package com.akash.xkcd;
 
 import android.app.Application;
 import android.test.ApplicationTestCase;

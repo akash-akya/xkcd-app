@@ -1,4 +1,4 @@
-package com.akash.xkxd.util;
+package com.akash.xkcd.util;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -8,10 +8,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 
 public class DataBaseHelper extends SQLiteOpenHelper {
@@ -26,6 +23,7 @@ public class DataBaseHelper extends SQLiteOpenHelper {
     private static final String KEY_IMG = "img";
     private static final String KEY_FAVORITE = "favorite";
     private static final String TAG = "DataBaseHelper";
+    private static final String KEY_TRANSCRIPT = "transcript";
 
     private static String DB_PATH;
 
@@ -89,6 +87,7 @@ public class DataBaseHelper extends SQLiteOpenHelper {
                 KEY_TITLE + " TEXT, " +
                 KEY_ALT + " TEXT, " +
                 KEY_IMG + " TEXT, " +
+                KEY_TRANSCRIPT + " TEXT, " +
                 KEY_FAVORITE + " INTEGER);"
         );
     }
@@ -102,6 +101,7 @@ public class DataBaseHelper extends SQLiteOpenHelper {
         cv.put(KEY_TITLE, xkcd.getTitle());
         cv.put(KEY_ALT, xkcd.getAlt());
         cv.put(KEY_IMG, xkcd.getImg());
+        cv.put(KEY_TRANSCRIPT, xkcd.getTranscript());
         cv.put(KEY_FAVORITE, xkcd.getFavorite());
         return myDataBase.insert(DATABASE_XKCD, null, cv);
     }
@@ -116,6 +116,7 @@ public class DataBaseHelper extends SQLiteOpenHelper {
                 KEY_TITLE + ", " +
                 KEY_ALT + ", " +
                 KEY_IMG + ", " +
+                KEY_TRANSCRIPT + ", " +
                 KEY_FAVORITE +
                 " FROM " + DATABASE_XKCD;
 
@@ -131,10 +132,11 @@ public class DataBaseHelper extends SQLiteOpenHelper {
                 String title = cursor.getString(4);
                 String alt = cursor.getString(5);
                 String img = cursor.getString(6);
-                int favorite = cursor.getInt(7);
+                String transcript = cursor.getString(7);
+                int favorite = cursor.getInt(8);
 
                 XkcdData xkcdData = new XkcdData(num, day, month, year,
-                        title, alt, img, favorite);
+                        title, alt, img, transcript,favorite);
 
                 comics.add(xkcdData);
             } while (cursor.moveToNext());
@@ -154,7 +156,7 @@ public class DataBaseHelper extends SQLiteOpenHelper {
     public XkcdData getComic(int num) {
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.query(DATABASE_XKCD, new String[] { KEY_NUM,  KEY_DAY,  KEY_MONTH,
-                KEY_YEAR, KEY_TITLE, KEY_ALT,  KEY_IMG, KEY_FAVORITE},
+                KEY_YEAR, KEY_TITLE, KEY_ALT,  KEY_IMG, KEY_TRANSCRIPT, KEY_FAVORITE},
                 KEY_NUM + "=?",
                 new String[] { String.valueOf(num) }, null, null, null, null);
 
@@ -169,9 +171,10 @@ public class DataBaseHelper extends SQLiteOpenHelper {
             String title = cursor.getString(4);
             String alt = cursor.getString(5);
             String img = cursor.getString(6);
-            int favorite = cursor.getInt(7);
+            String transcript = cursor.getString(7);
+            int favorite = cursor.getInt(8);
 
-            comic = new XkcdData(num, day, month, year, title, alt, img, favorite);
+            comic = new XkcdData(num, day, month, year, title, alt, img, transcript, favorite);
             cursor.close();
         }
         db.close();
@@ -223,10 +226,11 @@ public class DataBaseHelper extends SQLiteOpenHelper {
                 String title = cursor.getString(4);
                 String alt = cursor.getString(5);
                 String img = cursor.getString(6);
-                int favorite = cursor.getInt(7);
+                String transcript = cursor.getString(7);
+                int favorite = cursor.getInt(8);
 
                 XkcdData xkcdData = new XkcdData(num, day, month, year,
-                        title, alt, img, favorite);
+                        title, alt, img, transcript, favorite);
 
                 comics.add(xkcdData);
             } while (cursor.moveToNext());

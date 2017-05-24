@@ -1,4 +1,4 @@
-package com.akash.xkxd;
+package com.akash.xkcd;
 
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -7,7 +7,7 @@ import android.view.ViewGroup;
 import android.widget.SectionIndexer;
 import android.widget.TextView;
 
-import com.akash.xkxd.util.XkcdData;
+import com.akash.xkcd.util.XkcdData;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;

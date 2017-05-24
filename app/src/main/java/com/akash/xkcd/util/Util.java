@@ -1,4 +1,4 @@
-package com.akash.xkxd.util;
+package com.akash.xkcd.util;
 
 import android.os.Environment;
 

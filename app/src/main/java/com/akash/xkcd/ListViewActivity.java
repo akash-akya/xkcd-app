@@ -1,12 +1,9 @@
-package com.akash.xkxd;
+package com.akash.xkcd;
 
-import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.database.SQLException;
 import android.provider.Settings;
-import android.support.v4.app.ActivityCompat;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
@@ -15,14 +12,13 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
-import com.akash.xkxd.util.DataBaseHelper;
-import com.akash.xkxd.util.XkcdData;
+import com.akash.xkcd.util.DataBaseHelper;
+import com.akash.xkcd.util.XkcdData;
 
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.List;
 
 
 public class ListViewActivity extends AppCompatActivity implements ComicsListRecyclerViewAdapter.OnItemClickListener {

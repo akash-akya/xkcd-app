@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.akash.xkxd" >
+    package="com.akash.xkcd" >
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
 
     <application
-        android:allowBackup="true"
-        android:icon="@drawable/ic_launcher"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".ListViewActivity"
+            android:name="com.akash.xkcd.ListViewActivity"
             android:label="Browse" >
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -22,7 +22,7 @@
         </activity>
 
         <activity
-            android:name=".ComicsActivity"
+            android:name="com.akash.xkcd.ComicsActivity"
             android:theme="@style/AppThemeNoActionBar"
             android:label="@string/app_name" >
             <intent-filter>

@@ -1,4 +1,4 @@
-package com.akash.xkxd;
+package com.akash.xkcd;
 
 import android.Manifest;
 import android.app.Activity;
@@ -21,10 +21,13 @@ import android.support.v7.widget.SearchView;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 
-import com.akash.xkxd.util.DataBaseHelper;
-import com.akash.xkxd.util.XkcdData;
-import com.akash.xkxd.util.XkcdJsonData;
+import com.akash.xkcd.util.DataBaseHelper;
+import com.akash.xkcd.util.TouchImageView;
+import com.akash.xkcd.util.XkcdData;
+import com.akash.xkcd.util.XkcdJsonData;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,6 +42,8 @@ import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
+
+import static com.akash.xkcd.ImageFragment.showAltDialog;
 
 
 public class ComicsActivity extends AppCompatActivity implements ImageFragment.OnImgDownloadListener{
@@ -72,6 +77,9 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
         }
         sDbHelper.openDataBase();
 
+        verifyStoragePermissions(this);
+
+
         sAdapter = new ComicsAdapter(getSupportFragmentManager(), sDbHelper.getAllComics());
 
         if (sViewPager == null)
@@ -79,8 +87,6 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
 
         sViewPager.setAdapter(sAdapter);
         sViewPager.setOffscreenPageLimit(2);
-
-        verifyStoragePermissions(this);
 
         int num = getIntent().getIntExtra(ARG_COMIC_NUMBER, 0);
 
@@ -121,6 +127,8 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
     public void onImgDownload(XkcdData comic) {
         int pos = sViewPager.getCurrentItem();
 
+//        Log.d(TAG, "onImgDownload: Image Downloaded"+comic.getNum());
+
         if (sDbHelper.getComic(pos) != null){
             sActionBar.setTitle(sDbHelper.getComic(pos).getTitle());
         }
@@ -155,7 +163,20 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
 
         @Override
         public Fragment getItem(int position) {
+            Fragment page = getSupportFragmentManager().findFragmentByTag("android:switcher:" + R.id.comics_view_pager
+                    + ":" + position);
+
+            if (page != null) {
+                Log.d(TAG, "getItem: page exists :"+position);
+                return page;
+            }
             return ImageFragment.init(sDbHelper, position, sActionBar, ComicsActivity.this);
+        }
+
+        @Override
+        public int getItemPosition(Object object) {
+            // POSITION_NONE makes it possible to reload the PagerAdapter
+            return POSITION_NONE;
         }
 
         @Override
@@ -231,19 +252,22 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
             case R.id.action_browse:
                 Intent intent = new Intent(this, ListViewActivity.class);
                 intent.putExtra(ListViewActivity.ARG_FAVORITE, false);
-//                startActivity(intent);
                 startActivityForResult(intent, GET_COMIC_NUM);
                 return true;
 
             case R.id.action_browse_favorite:
                 Intent favIntent = new Intent(this, ListViewActivity.class);
                 favIntent.putExtra(ListViewActivity.ARG_FAVORITE, true);
-//                startActivity(favIntent);
                 startActivityForResult(favIntent, GET_COMIC_NUM);
                 return true;
 
             case R.id.action_get_latest:
                 getLatestComic(ComicsActivity.this);
+                return true;
+
+            case R.id.action_transcript:
+                if (sDbHelper.getComic(sViewPager.getCurrentItem()) != null)
+                    showAltDialog(this, sDbHelper.getComic(sViewPager.getCurrentItem()));
                 return true;
 
             default:
@@ -311,7 +335,7 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
                     Log.d(TAG, "onResponse: "+d.getNum()+d.getTitle());
                     XkcdData comic = new XkcdData(Integer.parseInt(d.getNum()),
                             d.getDay(), d.getMonth(), d.getYear(), d.getTitle(),
-                            d.getAlt(), d.getImg(), 0);
+                            d.getAlt(), d.getImg(), d.getTranscript(),0);
 
                     DataBaseHelper db = new DataBaseHelper(context);
                     try {

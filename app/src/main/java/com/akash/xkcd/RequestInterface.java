@@ -1,6 +1,6 @@
-package com.akash.xkxd;
+package com.akash.xkcd;
 
-import com.akash.xkxd.util.XkcdJsonData;
+import com.akash.xkcd.util.XkcdJsonData;
 
 import retrofit2.Call;
 import retrofit2.http.GET;

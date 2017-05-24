@@ -1,4 +1,4 @@
-package com.akash.xkxd;
+package com.akash.xkcd;
 
 import android.app.Activity;
 import android.app.AlertDialog;
