@@ -10,6 +10,7 @@ import android.database.SQLException;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.preference.PreferenceActivity;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -52,6 +53,7 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
     private static final String XKCD_URL = "https://xkcd.com/";
     private static final int GET_COMIC_NUM = 1;
     public static final String ARG_COMIC_NUMBER = "ComicNumber";
+    private static final int ACTIVITY_PREF = 2;
     private static ViewPager sViewPager;
     private static ComicsAdapter sAdapter;
     private static ActionBar sActionBar;
@@ -265,6 +267,11 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
                 getLatestComic(ComicsActivity.this);
                 return true;
 
+            case R.id.action_preference:
+                Intent preference = new Intent(this, MyPreferencesActivity .class);
+                startActivityForResult(preference, ACTIVITY_PREF);
+                return true;
+
             case R.id.action_transcript:
                 if (sDbHelper.getComic(sViewPager.getCurrentItem()) != null){
                     XkcdData c = sDbHelper.getComic(sViewPager.getCurrentItem());
@@ -285,6 +292,13 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
                 if(num!= -1){
                     sViewPager.setCurrentItem(num);
                 }
+            }
+        } else if (requestCode == ACTIVITY_PREF && resultCode == RESULT_OK) {
+            if (data.getIntExtra(MyPreferencesActivity.NIGHT_MODE_SWITCH, 0) == 1){
+                int num = sViewPager.getCurrentItem();
+                sAdapter = new ComicsAdapter(getSupportFragmentManager(), sDbHelper.getAllComics());
+                sViewPager.setAdapter(sAdapter);
+                sViewPager.setCurrentItem(num);
             }
         }
     }
