@@ -3,14 +3,12 @@ package com.akash.xkcd;
 import android.app.Activity;
 import android.content.Intent;
 import android.database.SQLException;
-import android.provider.Settings;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
 
 import com.akash.xkcd.util.DataBaseHelper;
 import com.akash.xkcd.util.XkcdData;
@@ -98,23 +96,6 @@ public class ListViewActivity extends AppCompatActivity implements ComicsListRec
             nums.add(String.valueOf(c.getNum()));
         }
         return nums;
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu_list_view, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.action_settings:
-                AboutApp.Show(ListViewActivity.this);
-                return true;
-            default:
-                return super.onOptionsItemSelected(item);
-        }
     }
 
     @Override

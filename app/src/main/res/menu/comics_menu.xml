@@ -19,8 +19,8 @@
     <item android:id="@+id/action_explain" android:title="Explain xkcd"/>
     <item android:id="@+id/action_open_browser" android:title="Open in Browser"/>
     <item android:id="@+id/action_browse" android:title="Browse Comics"/>
-    <item android:id="@+id/action_browse_favorite" android:title="Favorites"/>
+    <item android:id="@+id/action_browse_favorite" android:title="Favorite Comics"/>
     <item android:id="@+id/action_transcript" android:title="Transcript"/>
-    <item android:id="@+id/action_get_latest" android:title="Latest"/>
+    <item android:id="@+id/action_get_latest" android:title="Latest xkcd"/>
     <item android:id="@+id/action_preference" android:title="Preference"/>
 </menu>
