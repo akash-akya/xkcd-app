@@ -10,7 +10,6 @@ import android.database.SQLException;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
-import android.preference.PreferenceActivity;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -22,11 +21,8 @@ import android.support.v7.widget.SearchView;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 
 import com.akash.xkcd.util.DataBaseHelper;
-import com.akash.xkcd.util.TouchImageView;
 import com.akash.xkcd.util.XkcdData;
 import com.akash.xkcd.util.XkcdJsonData;
 
@@ -247,6 +243,13 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
                 startActivity(i);
                 return true;
 
+            case R.id.action_open_browser:
+                String xkcdUrl = "https://www.xkcd.com/" + sDbHelper.getComic(sViewPager.getCurrentItem()).getNum();
+                Intent xkcdBrowser = new Intent(Intent.ACTION_VIEW);
+                xkcdBrowser.setData(Uri.parse(xkcdUrl));
+                startActivity(xkcdBrowser);
+                return true;
+
             case R.id.action_share:
                 doShare(sDbHelper.getComic(sViewPager.getCurrentItem()));
                 return true;
@@ -294,7 +297,7 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
                 }
             }
         } else if (requestCode == ACTIVITY_PREF && resultCode == RESULT_OK) {
-            if (data.getIntExtra(MyPreferencesActivity.NIGHT_MODE_SWITCH, 0) == 1){
+            if (data.getIntExtra(MyPreferencesActivity.PREF_NIGHT_MODE, 0) == 1){
                 int num = sViewPager.getCurrentItem();
                 sAdapter = new ComicsAdapter(getSupportFragmentManager(), sDbHelper.getAllComics());
                 sViewPager.setAdapter(sAdapter);

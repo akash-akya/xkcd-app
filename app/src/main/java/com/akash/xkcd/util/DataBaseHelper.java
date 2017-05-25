@@ -213,7 +213,7 @@ public class DataBaseHelper extends SQLiteOpenHelper {
         ArrayList<XkcdData> comics = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.query(DATABASE_XKCD, new String[] { KEY_NUM,  KEY_DAY,  KEY_MONTH,
-                        KEY_YEAR, KEY_TITLE, KEY_ALT,  KEY_IMG, KEY_FAVORITE},
+                        KEY_YEAR, KEY_TITLE, KEY_ALT,  KEY_IMG, KEY_TRANSCRIPT, KEY_FAVORITE},
                 KEY_FAVORITE + "=?",
                 new String[] { String.valueOf(1) }, null, null, null, null);
 
