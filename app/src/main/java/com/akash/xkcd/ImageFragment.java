@@ -23,7 +23,6 @@ import android.widget.ProgressBar;
 import com.akash.xkcd.util.BitmapHelper;
 import com.akash.xkcd.util.DataBaseHelper;
 import com.akash.xkcd.util.TouchImageView;
-import com.akash.xkcd.util.Util;
 import com.akash.xkcd.util.XkcdData;
 import com.akash.xkcd.util.XkcdJsonData;
 import com.squareup.picasso.Picasso;
@@ -48,6 +47,9 @@ public class ImageFragment extends Fragment {
     private TouchImageView imgView;
     private ProgressBar progressBar;
     private SharedPreferences prefs;
+    public static final String appDirectoryName = "XKCD";
+    public static final File imageRoot = new File(Environment.getExternalStoragePublicDirectory(
+            Environment.DIRECTORY_PICTURES), appDirectoryName);
 
     static ImageFragment init(DataBaseHelper dbHelper, int val, ActionBar actionBar,
                               OnImgDownloadListener onImgDownloadListener) {
@@ -123,7 +125,7 @@ public class ImageFragment extends Fragment {
             }
         });
 
-        File file = new File(Util.getFilePath(comic.getNum()));
+        File file = new File(ImageFragment.getFilePath(comic.getNum()));
         if(prefs.getBoolean(MyPreferencesActivity.PREF_OFFLINE_MODE, true) && file.exists()){
             BitmapFactory.Options options = new BitmapFactory.Options();
             options.inMutable = true;
@@ -212,12 +214,13 @@ public class ImageFragment extends Fragment {
             @Override
             public void run() {
 
-                File folder = new File(Environment.getExternalStorageDirectory().getAbsolutePath()+ "/XKCD/");
-                if (!folder.exists()) {
-                    folder.mkdir();//If there is no folder it will be created.
+//                File folder = new File(Environment.getExternalStorageDirectory().getAbsolutePath()+ "/XKCD/");
+
+                if (!imageRoot.exists()) {
+                    imageRoot.mkdir();//If there is no folder it will be created.
                 }
 
-                File file = new File(Util.getFilePath(num));
+                File file = new File(getFilePath(num));
                 try {
                     file.createNewFile();
                     FileOutputStream ostream = new FileOutputStream(file);
@@ -229,6 +232,10 @@ public class ImageFragment extends Fragment {
                 }
             }
         }).start();
+    }
+
+    public static String getFilePath(int num) {
+        return (imageRoot.getAbsolutePath()+"/"+num+".png");
     }
 
     //target to save
