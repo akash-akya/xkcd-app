@@ -14,7 +14,7 @@
         android:label="@string/app_name"
         android:theme="@style/AppTheme">
         <activity
-            android:name="com.akash.xkcd.ListViewActivity"
+            android:name=".ListViewActivity"
             android:label="Browse" >
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -24,7 +24,7 @@
         </activity>
 
         <activity
-            android:name="com.akash.xkcd.ComicsActivity"
+            android:name=".ComicsActivity"
             android:theme="@style/AppThemeNoActionBar"
             android:label="@string/app_name" >
             <intent-filter>
@@ -35,7 +35,7 @@
         </activity>
 
         <activity
-            android:name="com.akash.xkcd.MyPreferencesActivity"
+            android:name=".MyPreferencesActivity"
             android:label="Preference"
             android:theme="@style/AppTheme">
             <intent-filter>

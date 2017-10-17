@@ -9,16 +9,17 @@ import android.content.pm.PackageManager;
 import android.database.SQLException;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SearchView;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.Menu;
 import android.view.MenuItem;
 
@@ -33,6 +34,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Random;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -50,18 +52,22 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
     private static final int GET_COMIC_NUM = 1;
     public static final String ARG_COMIC_NUMBER = "ComicNumber";
     private static final int ACTIVITY_PREF = 2;
-    private static ViewPager sViewPager;
-    private static ComicsAdapter sAdapter;
-    private static ActionBar sActionBar;
+    private ViewPager mPager;
+    private ComicsAdapter mAdapter;
+    private ActionBar sActionBar;
     private static DataBaseHelper sDbHelper;
-    private static ProgressDialog sProgressDialog;
+    private ProgressDialog sProgressDialog;
     private MenuItem mFavoriteMenuItem;
+    private SwipeRefreshLayout mSwipeRandom;
+    private int swiperStartOffset;
+    private int swiperEndOffset;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.comics_pager_layout);
-        sViewPager = (ViewPager) findViewById(R.id.comics_view_pager);
+        mPager = (ViewPager) findViewById(R.id.comics_view_pager);
+        mSwipeRandom = (SwipeRefreshLayout) findViewById(R.id.swiperandom);
 
         sActionBar = getSupportActionBar();
 
@@ -77,14 +83,10 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
 
         verifyStoragePermissions(this);
 
+        mAdapter = new ComicsAdapter(getSupportFragmentManager(), sDbHelper.getAllComics());
 
-        sAdapter = new ComicsAdapter(getSupportFragmentManager(), sDbHelper.getAllComics());
-
-        if (sViewPager == null)
-            Log.d(TAG, "onCreate: viewpager null");
-
-        sViewPager.setAdapter(sAdapter);
-        sViewPager.setOffscreenPageLimit(2);
+        mPager.setAdapter(mAdapter);
+        mPager.setOffscreenPageLimit(2);
 
         int num = getIntent().getIntExtra(ARG_COMIC_NUMBER, 0);
 
@@ -93,9 +95,27 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
         if (num == 0)
             getLatestComic(this);
 
-        sViewPager.setCurrentItem(num);
+        mPager.setCurrentItem(num);
 
-        sViewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+        if (mSwipeRandom != null){
+            swiperStartOffset = mSwipeRandom.getProgressViewStartOffset();
+            swiperEndOffset = mSwipeRandom.getProgressViewEndOffset();
+
+            // Initialize the actionbar static height
+            mSwipeRandom.setProgressViewOffset(false, getActionBarStaticHeight()+swiperStartOffset,
+                    getActionBarStaticHeight()+swiperEndOffset);
+
+            mSwipeRandom.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+                @Override
+                public void onRefresh() {
+                    int max = (sDbHelper.getMaxNumber()<1000) ? 1000 : sDbHelper.getMaxNumber()-1;
+                    mPager.setCurrentItem(new Random().nextInt(max)+1, true);
+                    mSwipeRandom.setRefreshing(false);
+                }
+            });
+        }
+
+        mPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
 
             @Override
             public void onPageSelected(int position) {
@@ -116,20 +136,45 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
 
             @Override
             public void onPageScrollStateChanged(int pos) {
-                // TODO Auto-generated method stub
+                enableDisableSwipeRefresh( pos != ViewPager.SCROLL_STATE_DRAGGING);
             }
         });
     }
 
+    private int getActionBarStaticHeight() {
+        TypedValue tv = new TypedValue();
+        int actionBarHeight = 0;
+        if (getTheme().resolveAttribute(android.R.attr.actionBarSize, tv, true))
+        {
+            actionBarHeight = TypedValue.complexToDimensionPixelSize(tv.data, getResources().getDisplayMetrics());
+        }
+        return actionBarHeight;
+    }
+
+    private void enableDisableSwipeRefresh(boolean enable) {
+        if (mSwipeRandom != null){
+            mSwipeRandom.setEnabled(enable);
+        }
+    }
+
     @Override
     public void onImgDownload(XkcdData comic) {
-        int pos = sViewPager.getCurrentItem();
-
-//        Log.d(TAG, "onImgDownload: Image Downloaded"+comic.getNum());
+        int pos = mPager.getCurrentItem();
 
         if (sDbHelper.getComic(pos) != null){
             sActionBar.setTitle(sDbHelper.getComic(pos).getTitle());
         }
+    }
+
+    @Override
+    public void onImageTap() {
+        if(sActionBar.isShowing()){
+            sActionBar.hide();
+        } else {
+            sActionBar.show();
+        }
+        mSwipeRandom.setProgressViewOffset(false, sActionBar.getHideOffset()+swiperStartOffset,
+                sActionBar.getHideOffset()+swiperEndOffset);
     }
 
     Comparator<XkcdData> comparator = new Comparator<XkcdData>() {
@@ -168,7 +213,7 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
                 Log.d(TAG, "getItem: page exists :"+position);
                 return page;
             }
-            return ImageFragment.init(sDbHelper, position, sActionBar, ComicsActivity.this);
+            return ImageFragment.init(sDbHelper, position, sActionBar, ComicsActivity.this, mSwipeRandom);
         }
 
         @Override
@@ -201,7 +246,7 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
             public boolean onQueryTextSubmit(String query) {
                 try{
                     int num = Integer.parseInt(query);
-                    sViewPager.setCurrentItem(num);
+                    mPager.setCurrentItem(num);
                     MenuItem searchMenuItem = menu.findItem(R.id.action_search);
                     if (searchMenuItem != null) {
                         searchMenuItem.collapseActionView();
@@ -225,33 +270,33 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_favorite:
-                XkcdData comic = sDbHelper.getComic(sViewPager.getCurrentItem());
+                XkcdData comic = sDbHelper.getComic(mPager.getCurrentItem());
                 if (comic != null) {
                     boolean new_state = !comic.getFavorite();
 //                    comic.setFavorite(new_state);
                     long numRows = sDbHelper.setFavorite(comic.getNum(), new_state);
                     Log.d(TAG, "setFavorite: "+numRows);
-                    sAdapter.UpdateComics(sDbHelper.getAllComics());
+                    mAdapter.UpdateComics(sDbHelper.getAllComics());
                     updateActionBarFavorite(mFavoriteMenuItem, new_state);
                 }
                 return true;
 
             case R.id.action_explain:
-                String url = "https://www.explainxkcd.com/wiki/index.php/" + sDbHelper.getComic(sViewPager.getCurrentItem()).getNum();
+                String url = "https://www.explainxkcd.com/wiki/index.php/" + sDbHelper.getComic(mPager.getCurrentItem()).getNum();
                 Intent i = new Intent(Intent.ACTION_VIEW);
                 i.setData(Uri.parse(url));
                 startActivity(i);
                 return true;
 
             case R.id.action_open_browser:
-                String xkcdUrl = "https://www.xkcd.com/" + sDbHelper.getComic(sViewPager.getCurrentItem()).getNum();
+                String xkcdUrl = "https://www.xkcd.com/" + sDbHelper.getComic(mPager.getCurrentItem()).getNum();
                 Intent xkcdBrowser = new Intent(Intent.ACTION_VIEW);
                 xkcdBrowser.setData(Uri.parse(xkcdUrl));
                 startActivity(xkcdBrowser);
                 return true;
 
             case R.id.action_share:
-                doShare(sDbHelper.getComic(sViewPager.getCurrentItem()));
+                doShare(sDbHelper.getComic(mPager.getCurrentItem()));
                 return true;
 
             case R.id.action_browse:
@@ -276,8 +321,8 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
                 return true;
 
             case R.id.action_transcript:
-                if (sDbHelper.getComic(sViewPager.getCurrentItem()) != null){
-                    XkcdData c = sDbHelper.getComic(sViewPager.getCurrentItem());
+                if (sDbHelper.getComic(mPager.getCurrentItem()) != null){
+                    XkcdData c = sDbHelper.getComic(mPager.getCurrentItem());
                     showAltDialog(this, c.getTitle()+" ("+c.getNum()+")", c.getTranscript());
                 }
                 return true;
@@ -293,15 +338,15 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
             if(resultCode == RESULT_OK){
                 int num = data.getIntExtra(ARG_COMIC_NUMBER, -1);
                 if(num!= -1){
-                    sViewPager.setCurrentItem(num);
+                    mPager.setCurrentItem(num);
                 }
             }
         } else if (requestCode == ACTIVITY_PREF && resultCode == RESULT_OK) {
             if (data.getIntExtra(MyPreferencesActivity.PREF_NIGHT_MODE, 0) == 1){
-                int num = sViewPager.getCurrentItem();
-                sAdapter = new ComicsAdapter(getSupportFragmentManager(), sDbHelper.getAllComics());
-                sViewPager.setAdapter(sAdapter);
-                sViewPager.setCurrentItem(num);
+                int num = mPager.getCurrentItem();
+                mAdapter = new ComicsAdapter(getSupportFragmentManager(), sDbHelper.getAllComics());
+                mPager.setAdapter(mAdapter);
+                mPager.setCurrentItem(num);
             }
         }
     }
@@ -332,7 +377,7 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
         }
     }
 
-    static void getLatestComic(final Context context) {
+    public void getLatestComic(final Context context) {
         sProgressDialog = new ProgressDialog(context);
         sProgressDialog.setMessage("loading");
         sProgressDialog.show();
@@ -371,10 +416,10 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
 
                     if (db.getComic(comic.getNum()) == null) {
                         db.insertXkcd(comic);
-                        sAdapter.UpdateComics(sDbHelper.getAllComics());
+                        mAdapter.UpdateComics(sDbHelper.getAllComics());
                     }
-                    sAdapter.notifyDataSetChanged();
-                    sViewPager.setCurrentItem(comic.getNum());
+                    mAdapter.notifyDataSetChanged();
+                    mPager.setCurrentItem(comic.getNum());
                     db.close();
                 } else {
                     Log.d(TAG, "onResponse: Null!");
@@ -393,10 +438,9 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
     public void doShare(XkcdData comic) {
         Intent shareIntent = new Intent(Intent.ACTION_SEND);
         shareIntent.setType("image/*");
-        File sdCard = Environment.getExternalStorageDirectory();
         shareIntent.putExtra(Intent.EXTRA_TEXT, comic.getAlt());
         shareIntent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(
-                new File(sdCard.getAbsolutePath()+"/XKCD/"+comic.getNum()+".png")));
+                new File(ImageFragment.imageRoot+"/"+comic.getNum()+".png")));
         startActivity(Intent.createChooser(shareIntent, "Share Via"));
     }
 

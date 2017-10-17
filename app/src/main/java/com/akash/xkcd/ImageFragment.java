@@ -11,10 +11,12 @@ import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.res.ResourcesCompat;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -41,8 +43,8 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class ImageFragment extends Fragment {
     private static final String TAG = "ImageFragment";
     private static DataBaseHelper sDbHelper;
-    private ActionBar mActionBar;
-    private OnImgDownloadListener sOnImgDownloadListener;
+    private static SwipeRefreshLayout mSwiper;
+    private OnImgDownloadListener mFragmentListener;
     private int mNum;
     private TouchImageView imgView;
     private ProgressBar progressBar;
@@ -52,12 +54,13 @@ public class ImageFragment extends Fragment {
             Environment.DIRECTORY_PICTURES), appDirectoryName);
 
     static ImageFragment init(DataBaseHelper dbHelper, int val, ActionBar actionBar,
-                              OnImgDownloadListener onImgDownloadListener) {
+                              OnImgDownloadListener onImgDownloadListener, SwipeRefreshLayout swiper) {
         ImageFragment frag = new ImageFragment();
         Bundle args = new Bundle();
         args.putInt("val", val);
         frag.setArguments(args);
         sDbHelper = dbHelper;
+        mSwiper = swiper;
         return frag;
     }
 
@@ -67,8 +70,7 @@ public class ImageFragment extends Fragment {
 
         prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
         ComicsActivity activity = (ComicsActivity) getActivity();
-        sOnImgDownloadListener = activity;
-        mActionBar = activity.getSupportActionBar();
+        mFragmentListener = activity;
 
         mNum = getArguments() != null ? getArguments().getInt("val") : 1;
     }
@@ -84,7 +86,33 @@ public class ImageFragment extends Fragment {
 
         imgView.setScaleType(ImageView.ScaleType.CENTER);
         imgView.setVisibility(View.GONE);
+        imgView.setOnTouchListener(new View.OnTouchListener() {
+            public float REFRESH_RATE = 10f;
+            public float scaleY;
+            public float scaleX;
+            public float mDownY;
+            public float mDownX;
 
+            @Override
+            public boolean onTouch(View v, MotionEvent ev) {
+                switch (ev.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        mDownX = ev.getX();
+                        mDownY = ev.getY();
+                        break;
+                    case MotionEvent.ACTION_MOVE:
+                        return doRefresh(ev);
+                    case MotionEvent.ACTION_UP:
+                        return doRefresh(ev);
+                }
+                return false;
+            }
+
+            private boolean doRefresh(MotionEvent ev) {
+                mSwiper.setEnabled(imgView.getZoomedRect().top == 0.0);
+                return false;
+            }
+        });
         progressBar.setVisibility(View.VISIBLE);
 
         final XkcdData comic = sDbHelper.getComic(mNum);
@@ -103,17 +131,11 @@ public class ImageFragment extends Fragment {
     }
 
     void setOrLoadComic(final Context context, final XkcdData comic) {
-        sOnImgDownloadListener.onImgDownload(comic);
+        mFragmentListener.onImgDownload(comic);
         imgView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (context != null) {
-                    if(mActionBar.isShowing()){
-                        mActionBar.hide();
-                    }else {
-                        mActionBar.show();
-                    }
-                }
+                mFragmentListener.onImageTap();
             }
         });
 
@@ -268,6 +290,17 @@ public class ImageFragment extends Fragment {
 
     interface OnImgDownloadListener {
         void onImgDownload(XkcdData comic);
+        void onImageTap();
+    }
+
+    public boolean isImageViewTop(){
+        if (imgView != null){
+            Log.d(TAG, "isImageViewTop: "+(imgView.getZoomedRect().top == 0.0));
+            return imgView.getZoomedRect().top == 0.0;
+        } else {
+            Log.d(TAG, "isImageViewTop: null");
+            return false;
+        }
     }
 
     static void showAltDialog(Context context, String title, String text){

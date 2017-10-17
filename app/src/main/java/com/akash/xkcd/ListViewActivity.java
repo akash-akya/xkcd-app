@@ -4,10 +4,8 @@ import android.app.Activity;
 import android.content.Intent;
 import android.database.SQLException;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
-import android.text.TextUtils;
 import android.util.Log;
 
 import com.akash.xkcd.util.DataBaseHelper;
@@ -15,7 +13,6 @@ import com.akash.xkcd.util.XkcdData;
 
 import java.io.IOException;
 import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 
 
@@ -57,15 +54,9 @@ public class ListViewActivity extends AppCompatActivity implements ComicsListRec
         mComics = getComicsFromDb(mIsFavorite);
 
         RecyclerView mRecyclerView = (RecyclerView) findViewById(R.id.rv_comics);
-        final String format = Settings.System.getString(getContentResolver(), Settings.System.DATE_FORMAT);
-        DateFormat mDateFormat;
-        if (TextUtils.isEmpty(format)) {
-            mDateFormat = android.text.format.DateFormat.getMediumDateFormat(this);
-        } else {
-            mDateFormat = new SimpleDateFormat(format);
-        }
+        DateFormat dateFormat = DateFormat.getDateInstance();
         Log.d(TAG, "onCreate: "+ mComics.size());
-        mAdapter = new ComicsListRecyclerViewAdapter(mComics, mDateFormat, this);
+        mAdapter = new ComicsListRecyclerViewAdapter(mComics, dateFormat, this);
         mRecyclerView.setAdapter(mAdapter);
 
 /*        for (int i=0; i<10; i++){
