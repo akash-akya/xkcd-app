@@ -105,6 +105,7 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
             mSwipeRandom.setProgressViewOffset(false, getActionBarStaticHeight()+swiperStartOffset,
                     getActionBarStaticHeight()+swiperEndOffset);
 
+            mSwipeRandom.setNestedScrollingEnabled(true);
             mSwipeRandom.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
                 @Override
                 public void onRefresh() {
