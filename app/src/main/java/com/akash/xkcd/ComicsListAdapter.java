@@ -1,5 +1,6 @@
 package com.akash.xkcd;
 
+import android.content.Context;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -26,8 +27,9 @@ public class ComicsListAdapter extends RecyclerView.Adapter<ComicsListAdapter.Vi
     private final OnItemClickListener mListener;
     private List<Xkcd> mComics;
 
-    ComicsListAdapter(List<Xkcd> comics, DateFormat dateFormat, OnItemClickListener listener) {
-        mComics = comics;
+    ComicsListAdapter(DateFormat dateFormat, OnItemClickListener listener, Context context, boolean isFavoriteList) {
+        ComicsList comicsList = ComicsList.getInstance(context.getApplicationContext());
+        mComics = isFavoriteList? comicsList.getFavoriteComics() : comicsList.getAsList();
         mDateFormat = dateFormat;
         mListener = listener;
     }
