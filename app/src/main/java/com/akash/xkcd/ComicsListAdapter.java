@@ -7,12 +7,12 @@ import android.view.ViewGroup;
 import android.widget.SectionIndexer;
 import android.widget.TextView;
 
-import com.akash.xkcd.util.XkcdData;
+import com.akash.xkcd.database.Xkcd;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 import butterknife.BindView;
@@ -24,9 +24,9 @@ public class ComicsListAdapter extends RecyclerView.Adapter<ComicsListAdapter.Vi
     private static final String TAG = "ComicsListAdapter";
     private final DateFormat mDateFormat;
     private final OnItemClickListener mListener;
-    private ArrayList<XkcdData> mComics;
+    private List<Xkcd> mComics;
 
-    ComicsListAdapter(ArrayList<XkcdData> comics, DateFormat dateFormat, OnItemClickListener listener) {
+    ComicsListAdapter(List<Xkcd> comics, DateFormat dateFormat, OnItemClickListener listener) {
         mComics = comics;
         mDateFormat = dateFormat;
         mListener = listener;
@@ -41,13 +41,13 @@ public class ComicsListAdapter extends RecyclerView.Adapter<ComicsListAdapter.Vi
 
     @Override
     public void onBindViewHolder(final ViewHolder holder, int position) {
-        XkcdData comic = mComics.get(position);
+        Xkcd comic = mComics.get(position);
         holder.mComicItem = comic;
 
-        holder.mTitle.setText(comic.getTitle());
-        holder.mNum.setText(String.valueOf(comic.getNum()));
+        holder.mTitle.setText(comic.title);
+        holder.mNum.setText(String.valueOf(comic.num));
 
-        String curDate = String.format("%s/%s/%s",comic.getYear(), comic.getMonth(), comic.getDay());
+        String curDate = String.format("%s/%s/%s",comic.year, comic.month, comic.day);
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy/mm/dd", Locale.getDefault());
         Date date = null;
         try {
@@ -98,7 +98,7 @@ public class ComicsListAdapter extends RecyclerView.Adapter<ComicsListAdapter.Vi
         @BindView(R.id.tv_comic_number) TextView mNum;
         @BindView(R.id.tv_comic_date) TextView mDate;
 
-        XkcdData mComicItem;
+        Xkcd mComicItem;
 
         ViewHolder(View view) {
             super(view);
@@ -113,6 +113,6 @@ public class ComicsListAdapter extends RecyclerView.Adapter<ComicsListAdapter.Vi
     }
 
     public interface OnItemClickListener {
-        void onItemClick(XkcdData comic);
+        void onItemClick(Xkcd comic);
     }
 }

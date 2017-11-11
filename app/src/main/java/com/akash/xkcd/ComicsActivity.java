@@ -6,7 +6,6 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.database.SQLException;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
@@ -22,14 +21,12 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 
-import com.akash.xkcd.util.DataBaseHelper;
+import com.akash.xkcd.database.ComicsDb;
+import com.akash.xkcd.database.Xkcd;
 import com.akash.xkcd.util.RequestInterface;
 import com.akash.xkcd.util.TouchImageView;
-import com.akash.xkcd.util.XkcdData;
-import com.akash.xkcd.util.XkcdJsonData;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Random;
 
 import butterknife.BindView;
@@ -45,13 +42,13 @@ import static com.akash.xkcd.ImageFragment.showAltDialog;
 
 public class ComicsActivity extends AppCompatActivity implements ImageFragment.OnImgDownloadListener{
     private static final String TAG = "ComicsActivity";
-    private static final String XKCD_URL = "https://xkcd.com/";
+    private static final String XKCD_URL = "https://Xkcd.com/";
     private static final int GET_COMIC_NUM = 1;
     public static final String ARG_COMIC_NUMBER = "ComicNumber";
     private static final int ACTIVITY_PREF = 2;
     private ComicsPageAdapter mAdapter;
     private ActionBar mActionBar;
-    public static DataBaseHelper sDbHelper;
+//    public static DataBaseHelper sDbHelper;
     private int swipeStartOffset;
     private int swipeEndOffset;
     private MenuItem mFavoriteMenuItem;
@@ -59,6 +56,7 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
 
     @BindView(R.id.comics_view_pager) ViewPager mPager;
     @BindView(R.id.swiperandom) SwipeRefreshLayout mSwipeRandom;
+    private ComicsDb db;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,9 +68,11 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
 
         verifyStoragePermissions(this);
 
-        sDbHelper = openDatabase();
+//        sDbHelper = openDatabase();
 
-        mAdapter = new ComicsPageAdapter(getSupportFragmentManager(), sDbHelper.getAllComics());
+        db = ComicsDb.getComicsDb(this);
+
+        mAdapter = new ComicsPageAdapter(getSupportFragmentManager(), db.xkcdDao().getAllComics());
 
         mPager.setAdapter(mAdapter);
         mPager.setOffscreenPageLimit(2);
@@ -80,7 +80,7 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
         int num = getIntent().getIntExtra(ARG_COMIC_NUMBER, 0);
 
         if (num == 0)
-            num = sDbHelper.getMaxNumber();
+            num = db.xkcdDao().getMaxNumber();
         if (num == 0)
             getLatestComic(this);
 
@@ -98,7 +98,7 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
         mSwipeRandom.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                int max = (sDbHelper.getMaxNumber()<1000) ? 1000 : sDbHelper.getMaxNumber()-1;
+                int max = (db.xkcdDao().getMaxNumber()<1000) ? 1000 : db.xkcdDao().getMaxNumber()-1;
                 mPager.setCurrentItem(new Random().nextInt(max)+1, true);
                 mSwipeRandom.setRefreshing(false);
             }
@@ -108,10 +108,10 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
 
             @Override
             public void onPageSelected(int position) {
-                XkcdData comic = sDbHelper.getComic(position);
+                Xkcd comic = db.xkcdDao().getComic(position);
                 if (comic != null){
-                    updateActionBarFavorite(mFavoriteMenuItem, comic.getFavorite());
-                    mActionBar.setTitle(comic.getTitle());
+                    updateActionBarFavorite(mFavoriteMenuItem, comic.isFavorite());
+                    mActionBar.setTitle(comic.title);
                 } else {
                     updateActionBarFavorite(mFavoriteMenuItem, false);
                     mActionBar.setTitle("#"+position);
@@ -130,12 +130,6 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
         });
     }
 
-    @Override
-    protected void onDestroy() {
-        sDbHelper.close();
-        super.onDestroy();
-    }
-
     private int getActionBarStaticHeight() {
         TypedValue tv = new TypedValue();
         int actionBarHeight = 0;
@@ -151,11 +145,11 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
     }
 
     @Override
-    public void onImgDownload(XkcdData comic) {
+    public void onImgDownload(Xkcd comic) {
         int pos = mPager.getCurrentItem();
 
-        if (sDbHelper.getComic(pos) != null){
-            mActionBar.setTitle(sDbHelper.getComic(pos).getTitle());
+        if (db.xkcdDao().getComic(pos) != null){
+            mActionBar.setTitle(db.xkcdDao().getComic(pos).title);
         }
     }
 
@@ -231,33 +225,32 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_favorite:
-                XkcdData comic = sDbHelper.getComic(mPager.getCurrentItem());
+                Xkcd comic = db.xkcdDao().getComic(mPager.getCurrentItem());
                 if (comic != null) {
-                    boolean new_state = !comic.getFavorite();
-//                    comic.setFavorite(new_state);
-                    long numRows = sDbHelper.setFavorite(comic.getNum(), new_state);
-                    Log.d(TAG, "setFavorite: "+numRows);
-                    mAdapter.UpdateComics(sDbHelper.getAllComics());
-                    updateActionBarFavorite(mFavoriteMenuItem, new_state);
+                    boolean newState = !(comic.isFavorite());
+                    comic.setFavorite(newState);
+                    db.xkcdDao().updateXkcd(comic);
+                    mAdapter.UpdateComics(db.xkcdDao().getAllComics());
+                    updateActionBarFavorite(mFavoriteMenuItem, newState);
                 }
                 return true;
 
             case R.id.action_explain:
-                String url = "https://www.explainxkcd.com/wiki/index.php/" + sDbHelper.getComic(mPager.getCurrentItem()).getNum();
+                String url = "https://www.explainxkcd.com/wiki/index.php/" + db.xkcdDao().getComic(mPager.getCurrentItem()).num;
                 Intent i = new Intent(Intent.ACTION_VIEW);
                 i.setData(Uri.parse(url));
                 startActivity(i);
                 return true;
 
             case R.id.action_open_browser:
-                String xkcdUrl = "https://www.xkcd.com/" + sDbHelper.getComic(mPager.getCurrentItem()).getNum();
+                String xkcdUrl = "https://www.Xkcd.com/" + db.xkcdDao().getComic(mPager.getCurrentItem()).num;
                 Intent xkcdBrowser = new Intent(Intent.ACTION_VIEW);
                 xkcdBrowser.setData(Uri.parse(xkcdUrl));
                 startActivity(xkcdBrowser);
                 return true;
 
             case R.id.action_share:
-                doShare(sDbHelper.getComic(mPager.getCurrentItem()));
+                doShare(db.xkcdDao().getComic(mPager.getCurrentItem()));
                 return true;
 
             case R.id.action_browse:
@@ -282,9 +275,9 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
                 return true;
 
             case R.id.action_transcript:
-                if (sDbHelper.getComic(mPager.getCurrentItem()) != null){
-                    XkcdData c = sDbHelper.getComic(mPager.getCurrentItem());
-                    showAltDialog(this, c.getTitle()+" ("+c.getNum()+")", c.getTranscript());
+                if (db.xkcdDao().getComic(mPager.getCurrentItem()) != null){
+                    Xkcd c = db.xkcdDao().getComic(mPager.getCurrentItem());
+                    showAltDialog(this, c.title+" ("+c.num+")", c.transcript);
                 }
                 return true;
 
@@ -303,16 +296,16 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
         } else if (requestCode == ACTIVITY_PREF && resultCode == RESULT_OK) {
             if (data.getIntExtra(MyPreferencesActivity.PREF_NIGHT_MODE, 0) == 1){
                 int num = mPager.getCurrentItem();
-                mAdapter = new ComicsPageAdapter(getSupportFragmentManager(), sDbHelper.getAllComics());
+                mAdapter = new ComicsPageAdapter(getSupportFragmentManager(), db.xkcdDao().getAllComics());
                 mPager.setAdapter(mAdapter);
                 mPager.setCurrentItem(num);
             }
         }
     }
 
-    private void updateActionBarFavorite(MenuItem starMenuItem, boolean favorite) {
+    private void updateActionBarFavorite(MenuItem starMenuItem, boolean isFavorite) {
         if (starMenuItem != null){
-            starMenuItem.setIcon(favorite? R.drawable.ic_star_white_24dp : R.drawable.ic_star_border_white_24dp);
+            starMenuItem.setIcon(isFavorite? R.drawable.ic_star_white_24dp : R.drawable.ic_star_border_white_24dp);
         }
     }
 
@@ -322,26 +315,6 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.WRITE_EXTERNAL_STORAGE
     };
-
-
-    private DataBaseHelper openDatabase() {
-        DataBaseHelper db;
-
-        db = new DataBaseHelper(getApplicationContext());
-        try {
-            db.createDataBase();
-        } catch (IOException ioe) {
-            throw new Error("Unable to create database");
-        }
-
-        try {
-            db.openDataBase();
-        } catch(SQLException sqle){
-            throw sqle;
-        }
-        return db;
-    }
-
 
     public static void verifyStoragePermissions(Activity activity) {
         int permission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
@@ -367,29 +340,25 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
 
         RequestInterface service = retrofit.create(RequestInterface.class);
 
-        Call<XkcdJsonData> call = service.getLatestComic();
+        Call<Xkcd> call = service.getLatestComic();
 
         call.enqueue(mResponse);
     }
 
-    private Callback<XkcdJsonData> mResponse = new Callback<XkcdJsonData>() {
+    private Callback<Xkcd> mResponse = new Callback<Xkcd>() {
         @Override
-        public void onResponse(Call<XkcdJsonData> call, Response<XkcdJsonData> response) {
+        public void onResponse(Call<Xkcd> call, Response<Xkcd> response) {
             if (response.body() != null){
-                XkcdJsonData d = response.body();
-                Log.d(TAG, "onResponse: "+d.getNum()+d.getTitle());
-                XkcdData comic = new XkcdData(Integer.parseInt(d.getNum()),
-                        d.getDay(), d.getMonth(), d.getYear(), d.getTitle(),
-                        d.getAlt(), d.getImg(), d.getTranscript(),0);
+                Xkcd comic  = response.body();
 
-                DataBaseHelper db = ComicsActivity.sDbHelper;
+//                DataBaseHelper db = ComicsActivity.db;
 
-                if (db.getComic(comic.getNum()) == null) {
-                    db.insertXkcd(comic);
-                    mAdapter.UpdateComics(sDbHelper.getAllComics());
+                if (db.xkcdDao().getComic(comic.num) == null) {
+                    db.xkcdDao().insertXkcd(comic);
+                    mAdapter.UpdateComics(db.xkcdDao().getAllComics());
                 }
                 mAdapter.notifyDataSetChanged();
-                mPager.setCurrentItem(comic.getNum());
+                mPager.setCurrentItem(comic.num);
             } else {
                 Log.d(TAG, "onResponse: Null!");
             }
@@ -397,18 +366,18 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
         }
 
         @Override
-        public void onFailure(Call<XkcdJsonData> call, Throwable t) {
+        public void onFailure(Call<Xkcd> call, Throwable t) {
             mProgressDialog.dismiss();
         }
     };
 
 
-    public void doShare(XkcdData comic) {
+    public void doShare(Xkcd comic) {
         Intent shareIntent = new Intent(Intent.ACTION_SEND);
         shareIntent.setType("image/*");
-        shareIntent.putExtra(Intent.EXTRA_TEXT, comic.getAlt());
+        shareIntent.putExtra(Intent.EXTRA_TEXT, comic.alt);
         shareIntent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(
-                new File(ImageFragment.imageRoot+"/"+comic.getNum()+".png")));
+                new File(ImageFragment.imageRoot+"/"+comic.num+".png")));
         startActivity(Intent.createChooser(shareIntent, "Share Via"));
     }
 

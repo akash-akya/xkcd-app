@@ -18,12 +18,11 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 
+import com.akash.xkcd.database.ComicsDb;
+import com.akash.xkcd.database.Xkcd;
 import com.akash.xkcd.util.BitmapHelper;
-import com.akash.xkcd.util.DataBaseHelper;
 import com.akash.xkcd.util.RequestInterface;
 import com.akash.xkcd.util.TouchImageView;
-import com.akash.xkcd.util.XkcdData;
-import com.akash.xkcd.util.XkcdJsonData;
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Target;
 
@@ -50,6 +49,7 @@ public class ImageFragment extends Fragment {
 
     @BindView(R.id.comic_image) TouchImageView comicImage;
     @BindView(R.id.progress_bar) ProgressBar progressBar;
+    private ComicsDb db;
 
     static ImageFragment init(int val) {
         ImageFragment frag = new ImageFragment();
@@ -81,10 +81,11 @@ public class ImageFragment extends Fragment {
         comicImage.setOnTouchListener(mFragmentListener.getOnImageTouchListener(comicImage));
         progressBar.setVisibility(View.VISIBLE);
 
-        final XkcdData comic = ComicsActivity.sDbHelper.getComic(mNum);
+        db = ComicsDb.getComicsDb(getActivity());
+        final Xkcd comic = db.xkcdDao().getComic(mNum);
 
         if (comic == null){
-            getRetrofitObject(mNum);
+            getComic(mNum);
         } else{
             setOrLoadComic(comic);
         }
@@ -95,7 +96,7 @@ public class ImageFragment extends Fragment {
         return layoutView;
     }
 
-    void setOrLoadComic(final XkcdData comic) {
+    void setOrLoadComic(final Xkcd comic) {
         mFragmentListener.onImgDownload(comic);
         comicImage.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -107,21 +108,21 @@ public class ImageFragment extends Fragment {
         comicImage.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
-                showAltDialog(getContext(), comic.getTitle()+" ("+comic.getNum()+")",comic.getAlt());
+                showAltDialog(getContext(), comic.title+" ("+comic.num+")",comic.alt);
                 return false;
             }
         });
 
-        File file = new File(ImageFragment.getFilePath(comic.getNum()));
+        File file = new File(ImageFragment.getFilePath(comic.num));
         if(prefs.getBoolean(MyPreferencesActivity.PREF_OFFLINE_MODE, true) && file.exists()){
             BitmapFactory.Options options = new BitmapFactory.Options();
             options.inMutable = true;
             setImage(BitmapFactory.decodeFile(file.getAbsolutePath(), options));
         } else {
-            Target target = getTarget(comic.getNum());
+            Target target = getTarget(comic.num);
             comicImage.setTag(target);
             Picasso.with(getContext())
-                    .load(comic.getImg())
+                    .load(comic.img)
                     .placeholder(R.color.accent)
                     .priority(Picasso.Priority.HIGH)
                     .into(target);
@@ -141,32 +142,26 @@ public class ImageFragment extends Fragment {
         comicImage.setVisibility(View.VISIBLE);
     }
 
-    private void getRetrofitObject(int num) {
+    private void getComic(int num) {
 
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("https://xkcd.com/")
+                .baseUrl("https://Xkcd.com/")
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
         RequestInterface service = retrofit.create(RequestInterface.class);
 
-        Call<XkcdJsonData> call = service.getComic(num);
+        Call<Xkcd> call = service.getComic(num);
         call.enqueue(onResponse);
     }
 
-    private Callback<XkcdJsonData> onResponse =  new Callback<XkcdJsonData>() {
+    private Callback<Xkcd> onResponse =  new Callback<Xkcd>() {
         @Override
-        public void onResponse(Call<XkcdJsonData> call, Response<XkcdJsonData> response) {
+        public void onResponse(Call<Xkcd> call, Response<Xkcd> response) {
             if (response.body() != null) {
-                XkcdJsonData d = response.body();
-                XkcdData comic = new XkcdData(Integer.parseInt(d.getNum()),
-                        d.getDay(), d.getMonth(), d.getYear(), d.getTitle(), d.getAlt(),
-                        d.getImg(), d.getTranscript(),0);
-
-                DataBaseHelper db = ComicsActivity.sDbHelper;
-
-                if (db.getComic(comic.getNum()) == null) {
-                    db.insertXkcd(comic);
+                Xkcd comic = response.body();
+                if (db.xkcdDao().getComic(comic.num) == null) {
+                    db.xkcdDao().insertXkcd(comic);
                 }
                 setOrLoadComic(comic);
             } else {
@@ -175,7 +170,7 @@ public class ImageFragment extends Fragment {
         }
 
         @Override
-        public void onFailure(Call<XkcdJsonData> call, Throwable t) {
+        public void onFailure(Call<Xkcd> call, Throwable t) {
 
         }
     };
@@ -234,7 +229,7 @@ public class ImageFragment extends Fragment {
     }
 
     interface OnImgDownloadListener {
-        void onImgDownload(XkcdData comic);
+        void onImgDownload(Xkcd comic);
         void onImageTap();
         View.OnTouchListener getOnImageTouchListener(TouchImageView comicView);
     }

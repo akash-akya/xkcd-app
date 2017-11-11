@@ -6,17 +6,19 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
 
-import com.akash.xkcd.util.XkcdData;
+import com.akash.xkcd.database.ComicsDb;
+import com.akash.xkcd.database.Xkcd;
 
 import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.List;
 
 
 public class ListViewActivity extends AppCompatActivity implements ComicsListAdapter.OnItemClickListener {
     private static final String TAG = "ListViewActivity";
     public static final String ARG_FAVORITE = "FAVORITE";
     private ComicsListAdapter mAdapter;
-    private ArrayList<XkcdData> mComics = new ArrayList<>();
+    private List<Xkcd> mComics = new ArrayList<>();
     private boolean mListType;
 
     @Override
@@ -24,7 +26,7 @@ public class ListViewActivity extends AppCompatActivity implements ComicsListAda
         super.onCreate(savedInstanceState);
         setContentView(R.layout.comics_list);
 
-        setTitle("xkcd");
+        setTitle("Xkcd");
         mListType = getIntent().getBooleanExtra(ARG_FAVORITE, false);
 
         RecyclerView mRecyclerView = (RecyclerView) findViewById(R.id.rv_comics);
@@ -36,7 +38,7 @@ public class ListViewActivity extends AppCompatActivity implements ComicsListAda
     @Override
     protected void onStart() {
         super.onStart();
-        ArrayList<XkcdData> comics = getComicsFromDb(mListType);
+        List<Xkcd> comics = getComicsFromDb(mListType);
         if (comics.size() != mComics.size()) {
             mComics.clear();
             mComics.addAll(comics);
@@ -44,25 +46,27 @@ public class ListViewActivity extends AppCompatActivity implements ComicsListAda
         }
     }
 
-    public static ArrayList<String> getComicNumbers(ArrayList<XkcdData> comics) {
+    public static List<String> getComicNumbers(List<Xkcd> comics) {
         ArrayList<String> nums = new ArrayList<>();
-        for(XkcdData c : comics) {
-            nums.add(String.valueOf(c.getNum()));
+        for(Xkcd c : comics) {
+            nums.add(String.valueOf(c.num));
         }
         return nums;
     }
 
     @Override
-    public void onItemClick(XkcdData comic) {
+    public void onItemClick(Xkcd comic) {
         Intent intent = new Intent(ListViewActivity.this, ComicsActivity.class);
-        intent.putExtra(ComicsActivity.ARG_COMIC_NUMBER, comic.getNum());
+        intent.putExtra(ComicsActivity.ARG_COMIC_NUMBER, comic.num);
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         setResult(Activity.RESULT_OK, intent);
         startActivity(intent);
         finish();
     }
 
-    public ArrayList<XkcdData> getComicsFromDb(boolean isFavoriteList) {
-        return isFavoriteList ? ComicsActivity.sDbHelper.getFavoriteComics() : ComicsActivity.sDbHelper.getAllComics();
+    public List<Xkcd> getComicsFromDb(boolean isFavoriteList) {
+        ComicsDb db = ComicsDb.getComicsDb(getApplicationContext());
+        return isFavoriteList ? db.xkcdDao().getFavoriteComics() :
+                db.xkcdDao().getAllComics();
     }
 }

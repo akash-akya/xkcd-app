@@ -5,9 +5,8 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
 import android.util.Log;
 
-import com.akash.xkcd.util.XkcdData;
+import com.akash.xkcd.database.Xkcd;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -21,26 +20,26 @@ class ComicsPageAdapter extends FragmentStatePagerAdapter {
     private static final String TAG = ComicsPageAdapter.class.getSimpleName();
     private final FragmentManager mFragmentManager;
     private int maxNumber;
-    private List<XkcdData> mComics;
+    private List<Xkcd> mComics;
 
-    private Comparator<XkcdData> comparator = new Comparator<XkcdData>() {
+    private Comparator<Xkcd> comparator = new Comparator<Xkcd>() {
         @Override
-        public int compare(XkcdData o1, XkcdData o2) {
-            if(o1.getNum()==o2.getNum())
+        public int compare(Xkcd o1, Xkcd o2) {
+            if(o1.num == o2.num)
                 return 0;
-            else if(o1.getNum()>o2.getNum())
+            else if(o1.num > o2.num)
                 return 1;
             else
                 return -1;
         }
     };
 
-    ComicsPageAdapter(FragmentManager fragmentManager, ArrayList<XkcdData> comics) {
+    ComicsPageAdapter(FragmentManager fragmentManager, List<Xkcd> comics) {
         super(fragmentManager);
         this.mFragmentManager = fragmentManager;
         this.mComics = comics;
         try {
-            maxNumber = Collections.max(mComics, comparator).getNum();
+            maxNumber = Collections.max(mComics, comparator).num;
         } catch (NoSuchElementException e){
             e.printStackTrace();
             maxNumber = 0;
@@ -71,9 +70,9 @@ class ComicsPageAdapter extends FragmentStatePagerAdapter {
         return  (mComics == null) ? 0 : maxNumber+1;
     }
 
-    void UpdateComics(ArrayList<XkcdData> comics) {
+    void UpdateComics(List<Xkcd> comics) {
         mComics.addAll(comics.subList(mComics.size(), comics.size()));
-        maxNumber = Collections.max(mComics, comparator).getNum();
+        maxNumber = Collections.max(mComics, comparator).num;
     }
 }
 
