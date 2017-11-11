@@ -10,9 +10,6 @@ import android.database.SQLException;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBar;
@@ -22,20 +19,21 @@ import android.util.Log;
 import android.util.TypedValue;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
 
 import com.akash.xkcd.util.DataBaseHelper;
+import com.akash.xkcd.util.RequestInterface;
+import com.akash.xkcd.util.TouchImageView;
 import com.akash.xkcd.util.XkcdData;
 import com.akash.xkcd.util.XkcdJsonData;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Random;
 
+import butterknife.BindView;
+import butterknife.ButterKnife;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -46,44 +44,35 @@ import static com.akash.xkcd.ImageFragment.showAltDialog;
 
 
 public class ComicsActivity extends AppCompatActivity implements ImageFragment.OnImgDownloadListener{
-
     private static final String TAG = "ComicsActivity";
     private static final String XKCD_URL = "https://xkcd.com/";
     private static final int GET_COMIC_NUM = 1;
     public static final String ARG_COMIC_NUMBER = "ComicNumber";
     private static final int ACTIVITY_PREF = 2;
-    private ViewPager mPager;
-    private ComicsAdapter mAdapter;
-    private ActionBar sActionBar;
-    private static DataBaseHelper sDbHelper;
-    private ProgressDialog sProgressDialog;
+    private ComicsPageAdapter mAdapter;
+    private ActionBar mActionBar;
+    public static DataBaseHelper sDbHelper;
+    private int swipeStartOffset;
+    private int swipeEndOffset;
     private MenuItem mFavoriteMenuItem;
-    private SwipeRefreshLayout mSwipeRandom;
-    private int swiperStartOffset;
-    private int swiperEndOffset;
+    ProgressDialog mProgressDialog;
+
+    @BindView(R.id.comics_view_pager) ViewPager mPager;
+    @BindView(R.id.swiperandom) SwipeRefreshLayout mSwipeRandom;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.comics_pager_layout);
-        mPager = (ViewPager) findViewById(R.id.comics_view_pager);
-        mSwipeRandom = (SwipeRefreshLayout) findViewById(R.id.swiperandom);
+        ButterKnife.bind(this);
 
-        sActionBar = getSupportActionBar();
-
-        if (sDbHelper != null)
-            sDbHelper.close();
-        sDbHelper = new DataBaseHelper(this);
-        try {
-            sDbHelper.createDataBase();
-        } catch (IOException ioe) {
-            throw new Error("Unable to create database");
-        }
-        sDbHelper.openDataBase();
+        mActionBar = getSupportActionBar();
 
         verifyStoragePermissions(this);
 
-        mAdapter = new ComicsAdapter(getSupportFragmentManager(), sDbHelper.getAllComics());
+        sDbHelper = openDatabase();
+
+        mAdapter = new ComicsPageAdapter(getSupportFragmentManager(), sDbHelper.getAllComics());
 
         mPager.setAdapter(mAdapter);
         mPager.setOffscreenPageLimit(2);
@@ -97,24 +86,23 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
 
         mPager.setCurrentItem(num);
 
-        if (mSwipeRandom != null){
-            swiperStartOffset = mSwipeRandom.getProgressViewStartOffset();
-            swiperEndOffset = mSwipeRandom.getProgressViewEndOffset();
 
-            // Initialize the actionbar static height
-            mSwipeRandom.setProgressViewOffset(false, getActionBarStaticHeight()+swiperStartOffset,
-                    getActionBarStaticHeight()+swiperEndOffset);
+        swipeStartOffset = mSwipeRandom.getProgressViewStartOffset();
+        swipeEndOffset = mSwipeRandom.getProgressViewEndOffset();
 
-            mSwipeRandom.setNestedScrollingEnabled(true);
-            mSwipeRandom.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-                @Override
-                public void onRefresh() {
-                    int max = (sDbHelper.getMaxNumber()<1000) ? 1000 : sDbHelper.getMaxNumber()-1;
-                    mPager.setCurrentItem(new Random().nextInt(max)+1, true);
-                    mSwipeRandom.setRefreshing(false);
-                }
-            });
-        }
+        // Initialize the actionbar static height
+        mSwipeRandom.setProgressViewOffset(false, getActionBarStaticHeight()+ swipeStartOffset,
+                getActionBarStaticHeight()+ swipeEndOffset);
+
+        mSwipeRandom.setNestedScrollingEnabled(true);
+        mSwipeRandom.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                int max = (sDbHelper.getMaxNumber()<1000) ? 1000 : sDbHelper.getMaxNumber()-1;
+                mPager.setCurrentItem(new Random().nextInt(max)+1, true);
+                mSwipeRandom.setRefreshing(false);
+            }
+        });
 
         mPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
 
@@ -123,10 +111,10 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
                 XkcdData comic = sDbHelper.getComic(position);
                 if (comic != null){
                     updateActionBarFavorite(mFavoriteMenuItem, comic.getFavorite());
-                    sActionBar.setTitle(comic.getTitle());
+                    mActionBar.setTitle(comic.getTitle());
                 } else {
                     updateActionBarFavorite(mFavoriteMenuItem, false);
-                    sActionBar.setTitle("#"+position);
+                    mActionBar.setTitle("#"+position);
                 }
             }
 
@@ -142,6 +130,12 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
         });
     }
 
+    @Override
+    protected void onDestroy() {
+        sDbHelper.close();
+        super.onDestroy();
+    }
+
     private int getActionBarStaticHeight() {
         TypedValue tv = new TypedValue();
         int actionBarHeight = 0;
@@ -153,9 +147,7 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
     }
 
     private void enableDisableSwipeRefresh(boolean enable) {
-        if (mSwipeRandom != null){
-            mSwipeRandom.setEnabled(enable);
-        }
+        mSwipeRandom.setEnabled(enable);
     }
 
     @Override
@@ -163,75 +155,43 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
         int pos = mPager.getCurrentItem();
 
         if (sDbHelper.getComic(pos) != null){
-            sActionBar.setTitle(sDbHelper.getComic(pos).getTitle());
+            mActionBar.setTitle(sDbHelper.getComic(pos).getTitle());
         }
     }
 
     @Override
     public void onImageTap() {
-        if(sActionBar.isShowing()){
-            sActionBar.hide();
+        if(mActionBar.isShowing()){
+            mActionBar.hide();
         } else {
-            sActionBar.show();
+            mActionBar.show();
         }
-        mSwipeRandom.setProgressViewOffset(false, sActionBar.getHideOffset()+swiperStartOffset,
-                sActionBar.getHideOffset()+swiperEndOffset);
+        mSwipeRandom.setProgressViewOffset(false, mActionBar.getHideOffset()+ swipeStartOffset,
+                mActionBar.getHideOffset()+ swipeEndOffset);
     }
 
-    Comparator<XkcdData> comparator = new Comparator<XkcdData>() {
-        @Override
-        public int compare(XkcdData o1, XkcdData o2) {
-            if(o1.getNum()==o2.getNum())
-                return 0;
-            else if(o1.getNum()>o2.getNum())
-                return 1;
-            else
-                return -1;
-        }
-    };
+    @Override
+    public View.OnTouchListener getOnImageTouchListener(final TouchImageView comicView) {
+        return new View.OnTouchListener() {
+            float mDownY;
+            float mDownX;
 
-    public class ComicsAdapter extends FragmentStatePagerAdapter {
-        private int maxNumber;
-        private List<XkcdData> mComics;
+            @Override
+            public boolean onTouch(View v, MotionEvent ev) {
+                switch (ev.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        mDownX = ev.getX();
+                        mDownY = ev.getY();
+                        break;
 
-        public ComicsAdapter(FragmentManager fragmentManager, ArrayList<XkcdData> comics) {
-            super(fragmentManager);
-            this.mComics = comics;
-            try {
-                maxNumber = Collections.max(mComics, comparator).getNum();
-            } catch (NoSuchElementException e){
-                e.printStackTrace();
-                maxNumber = 0;
+                    case MotionEvent.ACTION_MOVE:
+                    case MotionEvent.ACTION_UP:
+                        mSwipeRandom.setEnabled(comicView.getZoomedRect().top == 0.0);
+//                        v.performClick();
+                }
+                return false;
             }
-        }
-
-        @Override
-        public Fragment getItem(int position) {
-            Fragment page = getSupportFragmentManager().findFragmentByTag("android:switcher:" + R.id.comics_view_pager
-                    + ":" + position);
-
-            if (page != null) {
-                Log.d(TAG, "getItem: page exists :"+position);
-                return page;
-            }
-            return ImageFragment.init(sDbHelper, position, sActionBar, ComicsActivity.this, mSwipeRandom);
-        }
-
-        @Override
-        public int getItemPosition(Object object) {
-            // POSITION_NONE makes it possible to reload the PagerAdapter
-            return POSITION_NONE;
-        }
-
-        @Override
-        public int getCount() {
-            return  (mComics == null) ? 0 : maxNumber+1;
-        }
-
-        public void UpdateComics(ArrayList<XkcdData> comics) {
-            mComics.addAll(comics.subList(mComics.size(), comics.size()));
-            maxNumber = Collections.max(mComics, comparator).getNum();
-        }
+        };
     }
 
     @Override
@@ -335,17 +295,15 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if(requestCode == GET_COMIC_NUM){
-            if(resultCode == RESULT_OK){
-                int num = data.getIntExtra(ARG_COMIC_NUMBER, -1);
-                if(num!= -1){
-                    mPager.setCurrentItem(num);
-                }
+        if(requestCode == GET_COMIC_NUM && resultCode == RESULT_OK){
+            int num = data.getIntExtra(ARG_COMIC_NUMBER, -1);
+            if(num!= -1){
+                mPager.setCurrentItem(num);
             }
         } else if (requestCode == ACTIVITY_PREF && resultCode == RESULT_OK) {
             if (data.getIntExtra(MyPreferencesActivity.PREF_NIGHT_MODE, 0) == 1){
                 int num = mPager.getCurrentItem();
-                mAdapter = new ComicsAdapter(getSupportFragmentManager(), sDbHelper.getAllComics());
+                mAdapter = new ComicsPageAdapter(getSupportFragmentManager(), sDbHelper.getAllComics());
                 mPager.setAdapter(mAdapter);
                 mPager.setCurrentItem(num);
             }
@@ -366,6 +324,25 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
     };
 
 
+    private DataBaseHelper openDatabase() {
+        DataBaseHelper db;
+
+        db = new DataBaseHelper(getApplicationContext());
+        try {
+            db.createDataBase();
+        } catch (IOException ioe) {
+            throw new Error("Unable to create database");
+        }
+
+        try {
+            db.openDataBase();
+        } catch(SQLException sqle){
+            throw sqle;
+        }
+        return db;
+    }
+
+
     public static void verifyStoragePermissions(Activity activity) {
         int permission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
 
@@ -379,9 +356,9 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
     }
 
     public void getLatestComic(final Context context) {
-        sProgressDialog = new ProgressDialog(context);
-        sProgressDialog.setMessage("loading");
-        sProgressDialog.show();
+        mProgressDialog = new ProgressDialog(context);
+        mProgressDialog.setMessage("loading");
+        mProgressDialog.show();
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(XKCD_URL)
@@ -392,48 +369,38 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
 
         Call<XkcdJsonData> call = service.getLatestComic();
 
-        call.enqueue(new Callback<XkcdJsonData>() {
-            @Override
-            public void onResponse(Call<XkcdJsonData> call, Response<XkcdJsonData> response) {
-                if (response.body() != null){
-                    XkcdJsonData d = response.body();
-                    Log.d(TAG, "onResponse: "+d.getNum()+d.getTitle());
-                    XkcdData comic = new XkcdData(Integer.parseInt(d.getNum()),
-                            d.getDay(), d.getMonth(), d.getYear(), d.getTitle(),
-                            d.getAlt(), d.getImg(), d.getTranscript(),0);
-
-                    DataBaseHelper db = new DataBaseHelper(context);
-                    try {
-                        db.createDataBase();
-                    } catch (IOException ioe) {
-                        throw new Error("Unable to create database");
-                    }
-
-                    try {
-                        db.openDataBase();
-                    } catch(SQLException sqle){
-                        throw sqle;
-                    }
-
-                    if (db.getComic(comic.getNum()) == null) {
-                        db.insertXkcd(comic);
-                        mAdapter.UpdateComics(sDbHelper.getAllComics());
-                    }
-                    mAdapter.notifyDataSetChanged();
-                    mPager.setCurrentItem(comic.getNum());
-                    db.close();
-                } else {
-                    Log.d(TAG, "onResponse: Null!");
-                }
-                sProgressDialog.dismiss();
-            }
-
-            @Override
-            public void onFailure(Call<XkcdJsonData> call, Throwable t) {
-                sProgressDialog.dismiss();
-            }
-        });
+        call.enqueue(mResponse);
     }
+
+    private Callback<XkcdJsonData> mResponse = new Callback<XkcdJsonData>() {
+        @Override
+        public void onResponse(Call<XkcdJsonData> call, Response<XkcdJsonData> response) {
+            if (response.body() != null){
+                XkcdJsonData d = response.body();
+                Log.d(TAG, "onResponse: "+d.getNum()+d.getTitle());
+                XkcdData comic = new XkcdData(Integer.parseInt(d.getNum()),
+                        d.getDay(), d.getMonth(), d.getYear(), d.getTitle(),
+                        d.getAlt(), d.getImg(), d.getTranscript(),0);
+
+                DataBaseHelper db = ComicsActivity.sDbHelper;
+
+                if (db.getComic(comic.getNum()) == null) {
+                    db.insertXkcd(comic);
+                    mAdapter.UpdateComics(sDbHelper.getAllComics());
+                }
+                mAdapter.notifyDataSetChanged();
+                mPager.setCurrentItem(comic.getNum());
+            } else {
+                Log.d(TAG, "onResponse: Null!");
+            }
+            mProgressDialog.dismiss();
+        }
+
+        @Override
+        public void onFailure(Call<XkcdJsonData> call, Throwable t) {
+            mProgressDialog.dismiss();
+        }
+    };
 
 
     public void doShare(XkcdData comic) {

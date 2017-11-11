@@ -13,17 +13,20 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Locale;
+
+import butterknife.BindView;
+import butterknife.ButterKnife;
 
 
-public class ComicsListRecyclerViewAdapter extends RecyclerView.Adapter<ComicsListRecyclerViewAdapter.ViewHolder>
+public class ComicsListAdapter extends RecyclerView.Adapter<ComicsListAdapter.ViewHolder>
                 implements SectionIndexer{
-
-    private static final String TAG = "ComicsListRecyclerViewAdapter";
+    private static final String TAG = "ComicsListAdapter";
     private final DateFormat mDateFormat;
     private final OnItemClickListener mListener;
     private ArrayList<XkcdData> mComics;
 
-    public ComicsListRecyclerViewAdapter(ArrayList<XkcdData> comics, DateFormat dateFormat, OnItemClickListener listener) {
+    ComicsListAdapter(ArrayList<XkcdData> comics, DateFormat dateFormat, OnItemClickListener listener) {
         mComics = comics;
         mDateFormat = dateFormat;
         mListener = listener;
@@ -42,19 +45,18 @@ public class ComicsListRecyclerViewAdapter extends RecyclerView.Adapter<ComicsLi
         holder.mComicItem = comic;
 
         holder.mTitle.setText(comic.getTitle());
-        holder.mNum.setText(""+comic.getNum());
+        holder.mNum.setText(String.valueOf(comic.getNum()));
 
         String curDate = String.format("%s/%s/%s",comic.getYear(), comic.getMonth(), comic.getDay());
-
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy/mm/dd");
-        Date testDate = null;
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy/mm/dd", Locale.getDefault());
+        Date date = null;
         try {
-            testDate = sdf.parse(curDate);
+            date = sdf.parse(curDate);
         }catch(Exception ex){
             ex.printStackTrace();
         }
 
-        String localDate = mDateFormat.format(testDate);
+        String localDate = mDateFormat.format(date);
         holder.mDate.setText(localDate);
 
         holder.mView.setOnClickListener(new View.OnClickListener() {
@@ -90,20 +92,18 @@ public class ComicsListRecyclerViewAdapter extends RecyclerView.Adapter<ComicsLi
         return position;
     }
 
-    public class ViewHolder extends RecyclerView.ViewHolder {
-        public final View mView;
-        public final TextView mTitle;
-        public final TextView mNum;
-        public final TextView mDate;
+    static class ViewHolder extends RecyclerView.ViewHolder {
+        final View mView;
+        @BindView(R.id.tv_comic_name) TextView mTitle;
+        @BindView(R.id.tv_comic_number) TextView mNum;
+        @BindView(R.id.tv_comic_date) TextView mDate;
 
-        public XkcdData mComicItem;
+        XkcdData mComicItem;
 
-        public ViewHolder(View view) {
+        ViewHolder(View view) {
             super(view);
+            ButterKnife.bind(this,view);
             mView = view;
-            mTitle = (TextView) view.findViewById(R.id.tv_comic_name);
-            mNum = (TextView) view.findViewById(R.id.tv_comic_number);
-            mDate = (TextView) view.findViewById(R.id.tv_comic_date);
         }
 
         @Override

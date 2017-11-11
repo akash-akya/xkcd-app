@@ -13,7 +13,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 public class AboutApp {
-    static String VersionName(Context context) {
+    private static String VersionName(Context context) {
         try {
             return context.getPackageManager().getPackageInfo(context.getPackageName(),0).versionName;
         } catch (PackageManager.NameNotFoundException e) {

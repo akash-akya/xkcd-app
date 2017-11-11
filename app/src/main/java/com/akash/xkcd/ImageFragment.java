@@ -2,7 +2,6 @@ package com.akash.xkcd;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.database.SQLException;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
@@ -11,12 +10,9 @@ import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.res.ResourcesCompat;
-import android.support.v4.widget.SwipeRefreshLayout;
-import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -24,6 +20,7 @@ import android.widget.ProgressBar;
 
 import com.akash.xkcd.util.BitmapHelper;
 import com.akash.xkcd.util.DataBaseHelper;
+import com.akash.xkcd.util.RequestInterface;
 import com.akash.xkcd.util.TouchImageView;
 import com.akash.xkcd.util.XkcdData;
 import com.akash.xkcd.util.XkcdJsonData;
@@ -34,6 +31,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
+import butterknife.BindView;
+import butterknife.ButterKnife;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -42,25 +41,21 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class ImageFragment extends Fragment {
     private static final String TAG = "ImageFragment";
-    private static DataBaseHelper sDbHelper;
-    private static SwipeRefreshLayout mSwiper;
     private OnImgDownloadListener mFragmentListener;
     private int mNum;
-    private TouchImageView imgView;
-    private ProgressBar progressBar;
     private SharedPreferences prefs;
     public static final String appDirectoryName = "XKCD";
     public static final File imageRoot = new File(Environment.getExternalStoragePublicDirectory(
             Environment.DIRECTORY_PICTURES), appDirectoryName);
 
-    static ImageFragment init(DataBaseHelper dbHelper, int val, ActionBar actionBar,
-                              OnImgDownloadListener onImgDownloadListener, SwipeRefreshLayout swiper) {
+    @BindView(R.id.comic_image) TouchImageView comicImage;
+    @BindView(R.id.progress_bar) ProgressBar progressBar;
+
+    static ImageFragment init(int val) {
         ImageFragment frag = new ImageFragment();
         Bundle args = new Bundle();
         args.putInt("val", val);
         frag.setArguments(args);
-        sDbHelper = dbHelper;
-        mSwiper = swiper;
         return frag;
     }
 
@@ -69,10 +64,9 @@ public class ImageFragment extends Fragment {
         super.onCreate(savedInstanceState);
 
         prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        ComicsActivity activity = (ComicsActivity) getActivity();
-        mFragmentListener = activity;
+        mFragmentListener = (OnImgDownloadListener) getActivity();
 
-        mNum = getArguments() != null ? getArguments().getInt("val") : 1;
+        mNum = (getArguments() != null) ? getArguments().getInt("val") : 1;
     }
 
     @Override
@@ -80,48 +74,19 @@ public class ImageFragment extends Fragment {
                              Bundle savedInstanceState) {
 
         View layoutView = inflater.inflate(R.layout.comic_image_view, container, false);
+        ButterKnife.bind(this, layoutView);
 
-        imgView = (TouchImageView) layoutView.findViewById(R.id.imageView1);
-        progressBar = (ProgressBar) layoutView.findViewById(R.id.progress_bar);
-
-        imgView.setScaleType(ImageView.ScaleType.CENTER);
-        imgView.setVisibility(View.GONE);
-        imgView.setOnTouchListener(new View.OnTouchListener() {
-            public float REFRESH_RATE = 10f;
-            public float scaleY;
-            public float scaleX;
-            public float mDownY;
-            public float mDownX;
-
-            @Override
-            public boolean onTouch(View v, MotionEvent ev) {
-                switch (ev.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        mDownX = ev.getX();
-                        mDownY = ev.getY();
-                        break;
-                    case MotionEvent.ACTION_MOVE:
-                        return doRefresh(ev);
-                    case MotionEvent.ACTION_UP:
-                        return doRefresh(ev);
-                }
-                return false;
-            }
-
-            private boolean doRefresh(MotionEvent ev) {
-                mSwiper.setEnabled(imgView.getZoomedRect().top == 0.0);
-                return false;
-            }
-        });
+        comicImage.setScaleType(ImageView.ScaleType.CENTER);
+        comicImage.setVisibility(View.GONE);
+        comicImage.setOnTouchListener(mFragmentListener.getOnImageTouchListener(comicImage));
         progressBar.setVisibility(View.VISIBLE);
 
-        final XkcdData comic = sDbHelper.getComic(mNum);
-//        Log.d(TAG, "onCreateView: "+mNum + " id: "+imgView.getId());
+        final XkcdData comic = ComicsActivity.sDbHelper.getComic(mNum);
 
         if (comic == null){
-            getRetrofitObject(getContext() ,"https://xkcd.com/", mNum);
+            getRetrofitObject(mNum);
         } else{
-            setOrLoadComic(getContext(), comic);
+            setOrLoadComic(comic);
         }
 
         if (prefs.getBoolean("night_mode", false)) {
@@ -130,19 +95,19 @@ public class ImageFragment extends Fragment {
         return layoutView;
     }
 
-    void setOrLoadComic(final Context context, final XkcdData comic) {
+    void setOrLoadComic(final XkcdData comic) {
         mFragmentListener.onImgDownload(comic);
-        imgView.setOnClickListener(new View.OnClickListener() {
+        comicImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 mFragmentListener.onImageTap();
             }
         });
 
-        imgView.setOnLongClickListener(new View.OnLongClickListener() {
+        comicImage.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
-                showAltDialog(context, comic.getTitle()+" ("+comic.getNum()+")",comic.getAlt());
+                showAltDialog(getContext(), comic.getTitle()+" ("+comic.getNum()+")",comic.getAlt());
                 return false;
             }
         });
@@ -153,10 +118,9 @@ public class ImageFragment extends Fragment {
             options.inMutable = true;
             setImage(BitmapFactory.decodeFile(file.getAbsolutePath(), options));
         } else {
-//            Log.d(TAG, "setOrLoadComic: Get from web");
             Target target = getTarget(comic.getNum());
-            imgView.setTag(target);
-            Picasso.with(context)
+            comicImage.setTag(target);
+            Picasso.with(getContext())
                     .load(comic.getImg())
                     .placeholder(R.color.accent)
                     .priority(Picasso.Priority.HIGH)
@@ -165,79 +129,61 @@ public class ImageFragment extends Fragment {
     }
 
     private void setImage(Bitmap image) {
-//        Bitmap mutableBitmap = image.copy(Bitmap.Config.ARGB_8888, true);
-
-        imgView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        comicImage.setScaleType(ImageView.ScaleType.FIT_CENTER);
 
         if (prefs.getBoolean("night_mode", false)){
-            imgView.setImageBitmap(BitmapHelper.invert(image));
+            comicImage.setImageBitmap(BitmapHelper.invert(image));
         } else {
-            imgView.setImageBitmap(image);
+            comicImage.setImageBitmap(image);
         }
 
         progressBar.setVisibility(View.GONE);
-        imgView.setVisibility(View.VISIBLE);
+        comicImage.setVisibility(View.VISIBLE);
     }
 
-    void getRetrofitObject(final Context context, String url, int num) {
+    private void getRetrofitObject(int num) {
 
-//        Log.d(TAG, "getRetrofitObject: "+url);
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(url)
+                .baseUrl("https://xkcd.com/")
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
         RequestInterface service = retrofit.create(RequestInterface.class);
 
         Call<XkcdJsonData> call = service.getComic(num);
-
-        call.enqueue(new Callback<XkcdJsonData>() {
-            @Override
-            public void onResponse(Call<XkcdJsonData> call, Response<XkcdJsonData> response) {
-                if (response.body() != null){
-                    XkcdJsonData d = response.body();
-//                     Log.d(TAG, "onResponse: "+d.getNum()+" - "+d.getTitle());
-                    XkcdData comic = new XkcdData(Integer.parseInt(d.getNum()),
-                            d.getDay(), d.getMonth(), d.getYear(), d.getTitle(), d.getAlt(),
-                            d.getImg(), d.getTranscript(),0);
-
-                    DataBaseHelper db = new DataBaseHelper(context);
-                    try {
-                        db.createDataBase();
-                    } catch (IOException ioe) {
-                        throw new Error("Unable to create database");
-                    }
-
-                    try {
-                        db.openDataBase();
-                    } catch(SQLException sqle){
-                        throw sqle;
-                    }
-
-                    if (db.getComic(comic.getNum()) == null) {
-                        db.insertXkcd(comic);
-                    }
-                    db.close();
-                    setOrLoadComic(context, comic);
-                } else {
-                    Log.d(TAG, "onResponse: Null!");
-                }
-            }
-
-            @Override
-            public void onFailure(Call<XkcdJsonData> call, Throwable t) {
-
-            }
-        });
+        call.enqueue(onResponse);
     }
+
+    private Callback<XkcdJsonData> onResponse =  new Callback<XkcdJsonData>() {
+        @Override
+        public void onResponse(Call<XkcdJsonData> call, Response<XkcdJsonData> response) {
+            if (response.body() != null) {
+                XkcdJsonData d = response.body();
+                XkcdData comic = new XkcdData(Integer.parseInt(d.getNum()),
+                        d.getDay(), d.getMonth(), d.getYear(), d.getTitle(), d.getAlt(),
+                        d.getImg(), d.getTranscript(),0);
+
+                DataBaseHelper db = ComicsActivity.sDbHelper;
+
+                if (db.getComic(comic.getNum()) == null) {
+                    db.insertXkcd(comic);
+                }
+                setOrLoadComic(comic);
+            } else {
+                Log.d(TAG, "onResponse: Null!");
+            }
+        }
+
+        @Override
+        public void onFailure(Call<XkcdJsonData> call, Throwable t) {
+
+        }
+    };
 
     void saveImage(final int num, final Bitmap bitmap){
         new Thread(new Runnable() {
             @Override
             public void run() {
-
-//                File folder = new File(Environment.getExternalStorageDirectory().getAbsolutePath()+ "/XKCD/");
-
                 if (!imageRoot.exists()) {
                     imageRoot.mkdir();//If there is no folder it will be created.
                 }
@@ -266,10 +212,9 @@ public class ImageFragment extends Fragment {
 
             @Override
             public void onBitmapLoaded(final Bitmap bitmap, Picasso.LoadedFrom from) {
-//                Log.d(TAG, "onBitmapLoaded: IMG");
                 setImage(bitmap.copy(Bitmap.Config.ARGB_8888, true));
 
-                Log.d(TAG, "onBitmapLoaded: " + num + " id: "+imgView.getId());
+                Log.d(TAG, "onBitmapLoaded: " + num);
 
                 if (prefs.getBoolean(MyPreferencesActivity.PREF_OFFLINE_MODE, true)){
                     saveImage(num, bitmap);
@@ -291,16 +236,7 @@ public class ImageFragment extends Fragment {
     interface OnImgDownloadListener {
         void onImgDownload(XkcdData comic);
         void onImageTap();
-    }
-
-    public boolean isImageViewTop(){
-        if (imgView != null){
-            Log.d(TAG, "isImageViewTop: "+(imgView.getZoomedRect().top == 0.0));
-            return imgView.getZoomedRect().top == 0.0;
-        } else {
-            Log.d(TAG, "isImageViewTop: null");
-            return false;
-        }
+        View.OnTouchListener getOnImageTouchListener(TouchImageView comicView);
     }
 
     static void showAltDialog(Context context, String title, String text){

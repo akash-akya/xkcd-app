@@ -2,83 +2,46 @@ package com.akash.xkcd;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.database.SQLException;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 
-import com.akash.xkcd.util.DataBaseHelper;
 import com.akash.xkcd.util.XkcdData;
 
-import java.io.IOException;
 import java.text.DateFormat;
 import java.util.ArrayList;
 
 
-public class ListViewActivity extends AppCompatActivity implements ComicsListRecyclerViewAdapter.OnItemClickListener {
+public class ListViewActivity extends AppCompatActivity implements ComicsListAdapter.OnItemClickListener {
     private static final String TAG = "ListViewActivity";
     public static final String ARG_FAVORITE = "FAVORITE";
-
-    private static DataBaseHelper sDbHelper;
-    private ComicsListRecyclerViewAdapter mAdapter;
-    private ArrayList<XkcdData> mComics;
-    private boolean mIsFavorite;
+    private ComicsListAdapter mAdapter;
+    private ArrayList<XkcdData> mComics = new ArrayList<>();
+    private boolean mListType;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.comics_list);
 
-        setTitle("XKCD Comics");
-
-        if (sDbHelper != null)
-            sDbHelper.close();
-
-        sDbHelper = new DataBaseHelper(this);
-        try {
-            sDbHelper.createDataBase();
-
-        } catch (IOException ioe) {
-            throw new Error("Unable to create database");
-        }
-
-        try {
-            sDbHelper.openDataBase();
-        } catch(SQLException sqle){
-            throw sqle;
-        }
-
-        mIsFavorite = getIntent().getBooleanExtra(ARG_FAVORITE, false);
-        Log.d(TAG, "onCreate: "+mIsFavorite);
-        mComics = getComicsFromDb(mIsFavorite);
+        setTitle("xkcd");
+        mListType = getIntent().getBooleanExtra(ARG_FAVORITE, false);
 
         RecyclerView mRecyclerView = (RecyclerView) findViewById(R.id.rv_comics);
         DateFormat dateFormat = DateFormat.getDateInstance();
-        Log.d(TAG, "onCreate: "+ mComics.size());
-        mAdapter = new ComicsListRecyclerViewAdapter(mComics, dateFormat, this);
+        mAdapter = new ComicsListAdapter(mComics, dateFormat, this);
         mRecyclerView.setAdapter(mAdapter);
-
-/*        for (int i=0; i<10; i++){
-            getRetrofitObject("https://xkcd.com/", i);
-        }*/
     }
 
     @Override
-    protected void onResume() {
-        ArrayList<XkcdData> t = getComicsFromDb(mIsFavorite);
-        if (t.size() > mComics.size()) {
-            Log.d(TAG, "onResume: "+mComics.size()+" - "+t.size());
-            mComics.addAll(t.subList(mComics.size()-1,t.size()));
+    protected void onStart() {
+        super.onStart();
+        ArrayList<XkcdData> comics = getComicsFromDb(mListType);
+        if (comics.size() != mComics.size()) {
+            mComics.clear();
+            mComics.addAll(comics);
             mAdapter.notifyDataSetChanged();
         }
-        super.onResume();
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        sDbHelper.close();
     }
 
     public static ArrayList<String> getComicNumbers(ArrayList<XkcdData> comics) {
@@ -99,7 +62,7 @@ public class ListViewActivity extends AppCompatActivity implements ComicsListRec
         finish();
     }
 
-    public ArrayList<XkcdData> getComicsFromDb(boolean isFavorite) {
-        return isFavorite ? sDbHelper.getFavoriteComics(): sDbHelper.getAllComics();
+    public ArrayList<XkcdData> getComicsFromDb(boolean isFavoriteList) {
+        return isFavoriteList ? ComicsActivity.sDbHelper.getFavoriteComics() : ComicsActivity.sDbHelper.getAllComics();
     }
 }

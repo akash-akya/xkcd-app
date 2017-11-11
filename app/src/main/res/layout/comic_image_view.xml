@@ -4,7 +4,7 @@
     android:layout_height="match_parent" >
 
     <com.akash.xkcd.util.TouchImageView
-        android:id="@+id/imageView1"
+        android:id="@+id/comic_image"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:layout_margin="5dp"
