@@ -72,7 +72,6 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
             num = comicsList.getMaxNumber();
         if (num == 0)
             getLatestComic(this);
-        mPager.setCurrentItem(num);
 
         swipeStartOffset = mSwipeRandom.getProgressViewStartOffset();
         swipeEndOffset = mSwipeRandom.getProgressViewEndOffset();
@@ -91,36 +90,46 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
             }
         });
 
-        mPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+        mPager.addOnPageChangeListener(onPageChangeListener);
+        mPager.setCurrentItem(num);
 
+        // Manually call the onPageSelected for the first time.
+        // See link: https://stackoverflow.com/a/20292064
+        mPager.post(new Runnable(){
             @Override
-            public void onPageSelected(final int position) {
-                if (comicsList.isComicExists(position)){
-                    comicsList.getComic(position, new ComicsList.OnGetComicListener() {
-                        @Override
-                        public void onGetComic(Xkcd comic) {
-                            updateActionBarFavorite(mFavoriteMenuItem, comic.isFavorite());
-                            mActionBar.setTitle(comic.title);
-                        }
-                    });
-                }else {
-                    updateActionBarFavorite(mFavoriteMenuItem, false);
-                    mActionBar.setTitle("#"+position);
-                }
-
-            }
-
-            @Override
-            public void onPageScrolled(int arg0, float arg1, int arg2) {
-                // TODO Auto-generated method stub
-            }
-
-            @Override
-            public void onPageScrollStateChanged(int pos) {
-                enableDisableSwipeRefresh( pos != ViewPager.SCROLL_STATE_DRAGGING);
+            public void run() {
+                onPageChangeListener.onPageSelected(mPager.getCurrentItem());
             }
         });
     }
+
+    ViewPager.OnPageChangeListener onPageChangeListener = new ViewPager.OnPageChangeListener() {
+
+        @Override
+        public void onPageSelected(final int position) {
+            if (comicsList.isComicExists(position)){
+                comicsList.getComic(position, new ComicsList.OnGetComicListener() {
+                    @Override
+                    public void onGetComic(Xkcd comic) {
+                        updateActionBarFavorite(mFavoriteMenuItem, comic.isFavorite());
+                        mActionBar.setTitle(comic.title);
+                    }
+                });
+            }else {
+                updateActionBarFavorite(mFavoriteMenuItem, false);
+                mActionBar.setTitle("#"+position);
+            }
+        }
+
+        @Override
+        public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+        }
+
+        @Override
+        public void onPageScrollStateChanged(int pos) {
+            enableDisableSwipeRefresh( pos != ViewPager.SCROLL_STATE_DRAGGING);
+        }
+    };
 
     private int getActionBarStaticHeight() {
         TypedValue tv = new TypedValue();
@@ -142,6 +151,7 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
 
         if (comic.num == pos){
             mActionBar.setTitle(comic.title);
+            updateActionBarFavorite(mFavoriteMenuItem, comic.isFavorite());
         }
     }
 
@@ -156,20 +166,15 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
                 mActionBar.getHideOffset()+ swipeEndOffset);
     }
 
+    /**
+     * Don't enable swipe if we are in zoomed image view
+     * */
     @Override
     public View.OnTouchListener getOnImageTouchListener(final TouchImageView comicView) {
         return new View.OnTouchListener() {
-            float mDownY;
-            float mDownX;
-
             @Override
             public boolean onTouch(View v, MotionEvent ev) {
                 switch (ev.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        mDownX = ev.getX();
-                        mDownY = ev.getY();
-                        break;
-
                     case MotionEvent.ACTION_MOVE:
                     case MotionEvent.ACTION_UP:
                         mSwipeRandom.setEnabled(comicView.getZoomedRect().top == 0.0);

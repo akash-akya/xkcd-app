@@ -49,6 +49,7 @@ public class TouchImageView extends android.support.v7.widget.AppCompatImageView
     //
     private static final float SUPER_MIN_MULTIPLIER = .75f;
     private static final float SUPER_MAX_MULTIPLIER = 1.25f;
+    private static final float NORMAL_SCALE = 1.0f;
 
     //
     // Scale of image ranges from minScale to maxScale, where minScale == 1
@@ -68,6 +69,7 @@ public class TouchImageView extends android.support.v7.widget.AppCompatImageView
 
     private float minScale;
     private float maxScale;
+    private float maxTapZoomScale;
     private float superMinScale;
     private float superMaxScale;
     private float[] m;
@@ -125,8 +127,10 @@ public class TouchImageView extends android.support.v7.widget.AppCompatImageView
         if (mScaleType == null) {
             mScaleType = ScaleType.FIT_CENTER;
         }
-        minScale = 1;
-        maxScale = 3;
+        // Zoom supported
+        minScale = 0.5f;
+        maxScale = 5.0f;
+        maxTapZoomScale = 3.5f;
         superMinScale = SUPER_MIN_MULTIPLIER * minScale;
         superMaxScale = SUPER_MAX_MULTIPLIER * maxScale;
         setImageMatrix(matrix);
@@ -787,7 +791,8 @@ public class TouchImageView extends android.support.v7.widget.AppCompatImageView
                 consumed = doubleTapListener.onDoubleTap(e);
             }
             if (state == State.NONE) {
-                float targetZoom = (normalizedScale == minScale) ? maxScale : minScale;
+                // Modified, double tap will set the max zoom to 3.5f while it supports up to 4
+                float targetZoom = (normalizedScale == NORMAL_SCALE) ? maxTapZoomScale : NORMAL_SCALE;
                 DoubleTapZoom doubleTap = new DoubleTapZoom(targetZoom, e.getX(), e.getY(), false);
                 compatPostOnAnimation(doubleTap);
                 consumed = true;
