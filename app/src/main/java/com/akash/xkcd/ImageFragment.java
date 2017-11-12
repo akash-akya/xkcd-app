@@ -3,15 +3,11 @@ package com.akash.xkcd;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.app.AlertDialog;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,12 +17,6 @@ import android.widget.ProgressBar;
 import com.akash.xkcd.database.Xkcd;
 import com.akash.xkcd.util.BitmapHelper;
 import com.akash.xkcd.util.TouchImageView;
-import com.squareup.picasso.Picasso;
-import com.squareup.picasso.Target;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -36,14 +26,11 @@ public class ImageFragment extends Fragment {
     private OnFragmentListener mFragmentListener;
 //    private Xkcd comic;
     private SharedPreferences prefs;
-    public static final String appDirectoryName = "XKCD";
-    public static final File imageRoot = new File(Environment.getExternalStoragePublicDirectory(
-            Environment.DIRECTORY_PICTURES), appDirectoryName);
 
     @BindView(R.id.comic_image) TouchImageView comicImage;
     @BindView(R.id.progress_bar) ProgressBar progressBar;
     private ComicsList comics;
-//    private ComicsDb db;
+    private ComicImageProvider comicImageProvider;
 
     static ImageFragment init(int val) {
         ImageFragment frag = new ImageFragment();
@@ -59,8 +46,6 @@ public class ImageFragment extends Fragment {
 
         prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
         mFragmentListener = (OnFragmentListener) getActivity();
-
-        int num = (getArguments() != null) ? getArguments().getInt("val") : 1;
         comics = ComicsList.getInstance(getActivity());
     }
 
@@ -84,11 +69,6 @@ public class ImageFragment extends Fragment {
                 setOrLoadComic(comic);
             }
         });
-//        if (!comics.isComicExists(num)){
-//            getComic(num);
-//        } else{
-//            setOrLoadComic(comic);
-//        }
 
         if (prefs.getBoolean("night_mode", false)) {
             layoutView.setBackgroundColor(ResourcesCompat.getColor(getResources(),R.color.background_dark, null));
@@ -98,40 +78,22 @@ public class ImageFragment extends Fragment {
 
     void setOrLoadComic(final Xkcd comic) {
         if (getActivity() != null){
-//            mFragmentListener.updateActionBar(comic);
-            comicImage.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    mFragmentListener.onImageTap();
-                }
+            comicImage.setOnClickListener(v-> mFragmentListener.onImageTap());
+
+            comicImage.setOnLongClickListener(v -> {
+                showAltDialog(getContext(), comic.title+" ("+comic.num+")",comic.alt);
+                return false;
             });
 
-            comicImage.setOnLongClickListener(new View.OnLongClickListener() {
-                @Override
-                public boolean onLongClick(View v) {
-                    showAltDialog(getContext(), comic.title+" ("+comic.num+")",comic.alt);
-                    return false;
-                }
-            });
-
-            File file = new File(ImageFragment.getFilePath(comic.num));
-            if(prefs.getBoolean(MyPreferencesActivity.PREF_OFFLINE_MODE, true) && file.exists()){
-                BitmapFactory.Options options = new BitmapFactory.Options();
-                options.inMutable = true;
-                setImage(BitmapFactory.decodeFile(file.getAbsolutePath(), options));
-            } else {
-                Target target = getTarget(comic.num);
-                comicImage.setTag(target);
-                Picasso.with(getActivity().getApplicationContext())
-                        .load(comic.img)
-                        .placeholder(R.color.accent)
-                        .priority(Picasso.Priority.HIGH)
-                        .into(target);
-            }
+            boolean offlineMode = prefs.getBoolean(MyPreferencesActivity.PREF_OFFLINE_MODE, true);
+            comicImageProvider = new ComicImageProvider(comic, getActivity(), offlineMode, onImageGetListener);
+            comicImageProvider.getImage();
         }
     }
 
-    private void setImage(Bitmap image) {
+    ComicImageProvider.OnImageGetListener onImageGetListener = this::setImage;
+
+    private void setImage(Bitmap image, Xkcd comic) {
         comicImage.setScaleType(ImageView.ScaleType.FIT_CENTER);
 
         if (prefs.getBoolean("night_mode", false)){
@@ -144,61 +106,7 @@ public class ImageFragment extends Fragment {
         comicImage.setVisibility(View.VISIBLE);
     }
 
-    void saveImage(final int num, final Bitmap bitmap){
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                if (!imageRoot.exists()) {
-                    imageRoot.mkdir();//If there is no folder it will be created.
-                }
-
-                File file = new File(getFilePath(num));
-                try {
-                    file.createNewFile();
-                    FileOutputStream ostream = new FileOutputStream(file);
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 80, ostream);
-                    ostream.flush();
-                    ostream.close();
-                } catch (IOException e) {
-                    Log.e("IOException", e.getLocalizedMessage());
-                }
-            }
-        }).start();
-    }
-
-    public static String getFilePath(int num) {
-        return (imageRoot.getAbsolutePath()+"/"+num+".png");
-    }
-
-    //target to save
-    private Target getTarget(final int num){
-        Target target = new Target(){
-
-            @Override
-            public void onBitmapLoaded(final Bitmap bitmap, Picasso.LoadedFrom from) {
-                setImage(bitmap.copy(Bitmap.Config.ARGB_8888, true));
-
-                Log.d(TAG, "onBitmapLoaded: " + num);
-
-                if (prefs.getBoolean(MyPreferencesActivity.PREF_OFFLINE_MODE, true)){
-                    saveImage(num, bitmap);
-                }
-            }
-
-            @Override
-            public void onBitmapFailed(Drawable errorDrawable) {
-                Log.d(TAG, "onBitmapFailed: ");
-            }
-
-            @Override
-            public void onPrepareLoad(Drawable placeHolderDrawable) {
-            }
-        };
-        return target;
-    }
-
     interface OnFragmentListener {
-        void updateActionBar(Xkcd comic);
         void onImageTap();
         View.OnTouchListener getOnImageTouchListener(TouchImageView comicView);
     }

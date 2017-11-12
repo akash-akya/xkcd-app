@@ -9,15 +9,12 @@ import android.support.v7.widget.RecyclerView;
 import com.akash.xkcd.database.Xkcd;
 
 import java.text.DateFormat;
-import java.util.ArrayList;
-import java.util.List;
 
 
 public class ListViewActivity extends AppCompatActivity implements ComicsListAdapter.OnItemClickListener {
     private static final String TAG = "ListViewActivity";
     public static final String ARG_FAVORITE = "FAVORITE";
     private ComicsListAdapter mAdapter;
-//    private List<Xkcd> mComics = new ArrayList<>();
     private boolean mListType;
 
     @Override

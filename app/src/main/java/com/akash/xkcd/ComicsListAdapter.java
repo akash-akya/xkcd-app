@@ -61,12 +61,9 @@ public class ComicsListAdapter extends RecyclerView.Adapter<ComicsListAdapter.Vi
         String localDate = mDateFormat.format(date);
         holder.mDate.setText(localDate);
 
-        holder.mView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (null != mListener) {
-                    mListener.onItemClick(holder.mComicItem);
-                }
+        holder.mView.setOnClickListener(v -> {
+            if (null != mListener) {
+                mListener.onItemClick(holder.mComicItem);
             }
         });
     }

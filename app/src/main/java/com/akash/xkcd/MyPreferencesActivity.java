@@ -56,29 +56,23 @@ public class MyPreferencesActivity extends AppCompatActivity {
             addPreferencesFromResource(R.xml.preferences);
 
             nightMode = (SwitchPreferenceCompat) getPreferenceManager().findPreference(PREF_NIGHT_MODE);
-            nightMode.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-                @Override
-                public boolean onPreferenceChange(Preference preference, Object newValue) {
-                    Intent data = new Intent();
-                    data.putExtra(PREF_NIGHT_MODE, 1);
-                    getActivity().setResult(RESULT_OK, data);
-                    return true;
-                }
+            nightMode.setOnPreferenceChangeListener((preference, newValue) -> {
+                Intent data = new Intent();
+                data.putExtra(PREF_NIGHT_MODE, 1);
+                getActivity().setResult(RESULT_OK, data);
+                return true;
             });
 
             license = getPreferenceManager().findPreference("license");
-            license.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
-                @Override
-                public boolean onPreferenceClick(Preference preference) {
-                    WebView webView = new WebView(getContext());
-                    webView.loadUrl("file:///android_res/raw/copyrights.html");
+            license.setOnPreferenceClickListener(preference -> {
+                WebView webView = new WebView(getContext());
+                webView.loadUrl("file:///android_res/raw/copyrights.html");
 
-                    AlertDialog.Builder dialog = new AlertDialog.Builder(getContext());
-                    dialog.setView(webView);
-                    dialog.show();
+                AlertDialog.Builder dialog = new AlertDialog.Builder(getContext());
+                dialog.setView(webView);
+                dialog.show();
 
-                    return true;
-                }
+                return true;
             });
         }
 

@@ -23,7 +23,6 @@ import android.view.View;
 import com.akash.xkcd.database.Xkcd;
 import com.akash.xkcd.util.TouchImageView;
 
-import java.io.File;
 import java.util.Random;
 
 import butterknife.BindView;
@@ -34,7 +33,6 @@ import static com.akash.xkcd.ImageFragment.showAltDialog;
 
 public class ComicsActivity extends AppCompatActivity implements ImageFragment.OnFragmentListener {
     private static final String TAG = "ComicsActivity";
-    private static final String XKCD_URL = "https://Xkcd.com/";
     private static final int GET_COMIC_NUM = 1;
     public static final String ARG_COMIC_NUMBER = "ComicNumber";
     private static final int ACTIVITY_PREF = 2;
@@ -48,7 +46,6 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
     @BindView(R.id.comics_view_pager) ViewPager mPager;
     @BindView(R.id.swiperandom) SwipeRefreshLayout mSwipeRandom;
     private ComicsList comicsList;
-//    private ComicsDb db;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,11 +57,9 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
 
         verifyStoragePermissions(this);
 
-//        db = ComicsDb.getComicsDb(this);
         comicsList = ComicsList.getInstance(getApplicationContext());
 
         mAdapter = getComicsPagerAdapter();
-
         mPager.setAdapter(mAdapter);
         mPager.setOffscreenPageLimit(2);
 
@@ -82,13 +77,10 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
                 getActionBarStaticHeight()+ swipeEndOffset);
 
         mSwipeRandom.setNestedScrollingEnabled(true);
-        mSwipeRandom.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-                int max = (mAdapter.getMaxNumber() <1000) ? 1000 : mAdapter.getMaxNumber()-1;
-                mPager.setCurrentItem(new Random().nextInt(max)+1, true);
-                mSwipeRandom.setRefreshing(false);
-            }
+        mSwipeRandom.setOnRefreshListener(() -> {
+            int max = (mAdapter.getMaxNumber() <1000) ? 1000 : mAdapter.getMaxNumber()-1;
+            mPager.setCurrentItem(new Random().nextInt(max)+1, true);
+            mSwipeRandom.setRefreshing(false);
         });
 
         mPager.addOnPageChangeListener(onPageChangeListener);
@@ -96,12 +88,7 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
 
         // Manually call the onPageSelected for the first time.
         // See link: https://stackoverflow.com/a/20292064
-        mPager.post(new Runnable(){
-            @Override
-            public void run() {
-                onPageChangeListener.onPageSelected(mPager.getCurrentItem());
-            }
-        });
+        mPager.post(() -> onPageChangeListener.onPageSelected(mPager.getCurrentItem()));
     }
 
     private ComicsPageAdapter getComicsPagerAdapter() {
@@ -119,12 +106,9 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
         public void onPageSelected(final int position) {
             updateActionBarFavorite(mFavoriteMenuItem, false);
             mActionBar.setTitle("#"+position);
-            comicsList.getComic(position, new ComicsList.OnGetComicListener() {
-                @Override
-                public void onGetComic(Xkcd comic) {
-                    updateActionBarFavorite(mFavoriteMenuItem, comic.isFavorite());
-                    mActionBar.setTitle(comic.title);
-                }
+            comicsList.getComic(position, comic -> {
+                updateActionBarFavorite(mFavoriteMenuItem, comic.isFavorite());
+                mActionBar.setTitle(comic.title);
             });
         }
 
@@ -153,16 +137,6 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
     }
 
     @Override
-    public void updateActionBar(Xkcd comic) {
-        int pos = mPager.getCurrentItem();
-
-        if (comic.num == pos){
-            mActionBar.setTitle(comic.title);
-            updateActionBarFavorite(mFavoriteMenuItem, comic.isFavorite());
-        }
-    }
-
-    @Override
     public void onImageTap() {
         if(mActionBar.isShowing()){
             mActionBar.hide();
@@ -178,16 +152,13 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
      * */
     @Override
     public View.OnTouchListener getOnImageTouchListener(final TouchImageView comicView) {
-        return new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent ev) {
-                switch (ev.getAction()) {
-                    case MotionEvent.ACTION_MOVE:
-                    case MotionEvent.ACTION_UP:
-                        mSwipeRandom.setEnabled(comicView.getZoomedRect().top == 0.0);
-                }
-                return false;
+        return (v, ev) -> {
+            switch (ev.getAction()) {
+                case MotionEvent.ACTION_MOVE:
+                case MotionEvent.ACTION_UP:
+                    mSwipeRandom.setEnabled(comicView.getZoomedRect().top == 0.0);
             }
+            return false;
         };
     }
 
@@ -228,49 +199,35 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_favorite:
-                comicsList.getComic(mPager.getCurrentItem(), new ComicsList.OnGetComicListener() {
-                    @Override
-                    public void onGetComic(Xkcd comic) {
-                        boolean newState = !(comic.isFavorite());
-                        comic.setFavorite(newState);
-                        comicsList.setComic(comic);
-                        mAdapter.notifyDataSetChanged();
-                        updateActionBarFavorite(mFavoriteMenuItem, newState);
-                    }
+                comicsList.getComic(mPager.getCurrentItem(), comic -> {
+                    boolean newState = !(comic.isFavorite());
+                    comic.setFavorite(newState);
+                    comicsList.setComic(comic);
+                    mAdapter.notifyDataSetChanged();
+                    updateActionBarFavorite(mFavoriteMenuItem, newState);
                 });
                 return true;
 
             case R.id.action_explain:
-                comicsList.getComic(mPager.getCurrentItem(), new ComicsList.OnGetComicListener() {
-                    @Override
-                    public void onGetComic(Xkcd comic) {
-                        String url = "https://www.explainxkcd.com/wiki/index.php/" + comic.num;
-                        Intent i = new Intent(Intent.ACTION_VIEW);
-                        i.setData(Uri.parse(url));
-                        startActivity(i);
-                    }
+                comicsList.getComic(mPager.getCurrentItem(), comic -> {
+                    String url = "https://www.explainxkcd.com/wiki/index.php/" + comic.num;
+                    Intent i = new Intent(Intent.ACTION_VIEW);
+                    i.setData(Uri.parse(url));
+                    startActivity(i);
                 });
                 return true;
 
             case R.id.action_open_browser:
-                comicsList.getComic(mPager.getCurrentItem(), new ComicsList.OnGetComicListener() {
-                    @Override
-                    public void onGetComic(Xkcd comic) {
-                        String xkcdUrl = "https://www.Xkcd.com/" + comic.num;
-                        Intent xkcdBrowser = new Intent(Intent.ACTION_VIEW);
-                        xkcdBrowser.setData(Uri.parse(xkcdUrl));
-                        startActivity(xkcdBrowser);
-                    }
+                comicsList.getComic(mPager.getCurrentItem(), comic -> {
+                    String xkcdUrl = "https://www.xkcd.com/" + comic.num;
+                    Intent xkcdBrowser = new Intent(Intent.ACTION_VIEW);
+                    xkcdBrowser.setData(Uri.parse(xkcdUrl));
+                    startActivity(xkcdBrowser);
                 });
                 return true;
 
             case R.id.action_share:
-                comicsList.getComic(mPager.getCurrentItem(), new ComicsList.OnGetComicListener() {
-                    @Override
-                    public void onGetComic(Xkcd comic) {
-                        doShare(comic);
-                    }
-                });
+                comicsList.getComic(mPager.getCurrentItem(), comic -> doShare(comic));
                 return true;
 
             case R.id.action_browse:
@@ -295,12 +252,7 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
                 return true;
 
             case R.id.action_transcript:
-                comicsList.getComic(mPager.getCurrentItem(), new ComicsList.OnGetComicListener() {
-                    @Override
-                    public void onGetComic(Xkcd comic) {
-                        showAltDialog(ComicsActivity.this, comic.title+" ("+comic.num+")", comic.transcript);
-                    }
-                });
+                comicsList.getComic(mPager.getCurrentItem(), comic -> showAltDialog(ComicsActivity.this, comic.title+" ("+comic.num+")", comic.transcript));
                 return true;
 
             default:
@@ -355,14 +307,11 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
         mProgressDialog.setMessage("loading");
         mProgressDialog.show();
 
-        comicsList.getLatestComic(new ComicsList.OnGetComicListener() {
-            @Override
-            public void onGetComic(Xkcd comic) {
-                mAdapter.setMaxNumber(comicsList.getMaxNumber());
-                mAdapter.notifyDataSetChanged();
-                mPager.setCurrentItem(comic.num);
-                mProgressDialog.dismiss();
-            }
+        comicsList.getLatestComic(comic -> {
+            mAdapter.setMaxNumber(comicsList.getMaxNumber());
+            mAdapter.notifyDataSetChanged();
+            mPager.setCurrentItem(comic.num);
+            mProgressDialog.dismiss();
         });
     }
 
@@ -370,8 +319,7 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
         Intent shareIntent = new Intent(Intent.ACTION_SEND);
         shareIntent.setType("image/*");
         shareIntent.putExtra(Intent.EXTRA_TEXT, comic.alt);
-        shareIntent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(
-                new File(ImageFragment.imageRoot+"/"+comic.num+".png")));
+        shareIntent.putExtra(Intent.EXTRA_STREAM, ComicImageProvider.getImagePath(comic.num));
         startActivity(Intent.createChooser(shareIntent, "Share Via"));
     }
 

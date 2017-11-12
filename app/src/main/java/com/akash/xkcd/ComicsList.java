@@ -20,7 +20,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
  * Created by akash on 11/11/17.
  */
 
-public class ComicsList {
+class ComicsList {
     private static final String TAG = ComicsList.class.getName();
     private static final String XKCD_URL = "https://xkcd.com/";
     private final ComicsDb db;
