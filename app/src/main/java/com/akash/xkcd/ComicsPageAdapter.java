@@ -7,18 +7,13 @@ import android.support.v4.app.FragmentStatePagerAdapter;
  * Created by akash on 11/11/17.
  */
 
-class ComicsPageAdapter extends FragmentStatePagerAdapter {
+abstract class ComicsPageAdapter extends FragmentStatePagerAdapter {
     private static final String TAG = ComicsPageAdapter.class.getSimpleName();
     private int maxNumber;
 
     ComicsPageAdapter(FragmentManager fragmentManager, int maxNumber) {
         super(fragmentManager);
         this.maxNumber = maxNumber;
-    }
-
-    @Override
-    public ImageFragment getItem(int position) {
-        return ImageFragment.init(position);
     }
 
     @Override

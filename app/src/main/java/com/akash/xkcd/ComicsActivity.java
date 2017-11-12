@@ -63,7 +63,8 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
 //        db = ComicsDb.getComicsDb(this);
         comicsList = ComicsList.getInstance(getApplicationContext());
 
-        mAdapter = new ComicsPageAdapter(getSupportFragmentManager(), comicsList.getMaxNumber());
+        mAdapter = getComicsPagerAdapter();
+
         mPager.setAdapter(mAdapter);
         mPager.setOffscreenPageLimit(2);
 
@@ -103,22 +104,28 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
         });
     }
 
+    private ComicsPageAdapter getComicsPagerAdapter() {
+        return new ComicsPageAdapter(getSupportFragmentManager(), comicsList.getMaxNumber()) {
+            @Override
+            public ImageFragment getItem(int position) {
+                return ImageFragment.init(position);
+            }
+        };
+    }
+
     ViewPager.OnPageChangeListener onPageChangeListener = new ViewPager.OnPageChangeListener() {
 
         @Override
         public void onPageSelected(final int position) {
-            if (comicsList.isComicExists(position)){
-                comicsList.getComic(position, new ComicsList.OnGetComicListener() {
-                    @Override
-                    public void onGetComic(Xkcd comic) {
-                        updateActionBarFavorite(mFavoriteMenuItem, comic.isFavorite());
-                        mActionBar.setTitle(comic.title);
-                    }
-                });
-            }else {
-                updateActionBarFavorite(mFavoriteMenuItem, false);
-                mActionBar.setTitle("#"+position);
-            }
+            updateActionBarFavorite(mFavoriteMenuItem, false);
+            mActionBar.setTitle("#"+position);
+            comicsList.getComic(position, new ComicsList.OnGetComicListener() {
+                @Override
+                public void onGetComic(Xkcd comic) {
+                    updateActionBarFavorite(mFavoriteMenuItem, comic.isFavorite());
+                    mActionBar.setTitle(comic.title);
+                }
+            });
         }
 
         @Override
@@ -311,7 +318,7 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
         } else if (requestCode == ACTIVITY_PREF && resultCode == RESULT_OK) {
             if (data.getIntExtra(MyPreferencesActivity.PREF_NIGHT_MODE, 0) == 1){
                 int num = mPager.getCurrentItem();
-                mAdapter = new ComicsPageAdapter(getSupportFragmentManager(), comicsList.getMaxNumber());
+                mAdapter = getComicsPagerAdapter();
                 mPager.setAdapter(mAdapter);
                 mPager.setCurrentItem(num);
             }

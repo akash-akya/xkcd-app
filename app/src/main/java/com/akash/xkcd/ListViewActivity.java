@@ -25,7 +25,7 @@ public class ListViewActivity extends AppCompatActivity implements ComicsListAda
         super.onCreate(savedInstanceState);
         setContentView(R.layout.comics_list);
 
-        setTitle("Xkcd");
+        setTitle("xkcd");
         mListType = getIntent().getBooleanExtra(ARG_FAVORITE, false);
 
         RecyclerView mRecyclerView = (RecyclerView) findViewById(R.id.rv_comics);
@@ -38,14 +38,6 @@ public class ListViewActivity extends AppCompatActivity implements ComicsListAda
     protected void onStart() {
         super.onStart();
         mAdapter.notifyDataSetChanged();
-    }
-
-    public static List<String> getComicNumbers(List<Xkcd> comics) {
-        ArrayList<String> nums = new ArrayList<>();
-        for(Xkcd c : comics) {
-            nums.add(String.valueOf(c.num));
-        }
-        return nums;
     }
 
     @Override

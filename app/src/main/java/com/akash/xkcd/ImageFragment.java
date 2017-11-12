@@ -77,6 +77,7 @@ public class ImageFragment extends Fragment {
         progressBar.setVisibility(View.VISIBLE);
 
         int num = (getArguments() != null) ? getArguments().getInt("val") : 1;
+
         comics.getComic(num, new ComicsList.OnGetComicListener() {
             @Override
             public void onGetComic(Xkcd comic) {
@@ -97,7 +98,7 @@ public class ImageFragment extends Fragment {
 
     void setOrLoadComic(final Xkcd comic) {
         if (getActivity() != null){
-            mFragmentListener.updateActionBar(comic);
+//            mFragmentListener.updateActionBar(comic);
             comicImage.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {

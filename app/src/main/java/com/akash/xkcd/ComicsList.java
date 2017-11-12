@@ -57,7 +57,7 @@ public class ComicsList {
         }
     }
 
-    boolean isComicExists(int num) {
+    private boolean isComicExists(int num) {
         return comics.get(num) != null;
     }
 
@@ -132,6 +132,8 @@ public class ComicsList {
     List<Xkcd> getAsList() {
         return db.xkcdDao().getAllComics();
     }
+
+
 
     interface OnGetComicListener {
         void onGetComic(Xkcd comic);

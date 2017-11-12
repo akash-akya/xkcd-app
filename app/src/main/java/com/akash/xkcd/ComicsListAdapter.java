@@ -78,7 +78,7 @@ public class ComicsListAdapter extends RecyclerView.Adapter<ComicsListAdapter.Vi
 
     @Override
     public Object[] getSections() {
-        return ListViewActivity.getComicNumbers(mComics).toArray();
+        return mComics.toArray();
     }
 
     @Override
