@@ -3,9 +3,11 @@ package com.akash.xkcd;
 import android.Manifest;
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.arch.persistence.room.util.StringUtil;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.ParseException;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
@@ -14,16 +16,22 @@ import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SearchView;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.LinearLayout;
 
 import com.akash.xkcd.database.Xkcd;
 import com.akash.xkcd.util.TouchImageView;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.List;
 import java.util.Random;
+import java.util.logging.Logger;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -44,7 +52,6 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
     ProgressDialog mProgressDialog;
 
     @BindView(R.id.comics_view_pager) ViewPager mPager;
-    @BindView(R.id.swiperandom) SwipeRefreshLayout mSwipeRandom;
     private ComicsList comicsList;
 
     @Override
@@ -63,25 +70,19 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
         mPager.setAdapter(mAdapter);
         mPager.setOffscreenPageLimit(2);
 
-        int num = getIntent().getIntExtra(ARG_COMIC_NUMBER, 0);
-        if (num == 0)
+        Intent intent = getIntent();
+        String action = intent.getAction();
+        Uri data = intent.getData();
+
+        int num = intent.getIntExtra(ARG_COMIC_NUMBER, 0);
+        if (num == 0 && "android.intent.action.VIEW".matches(action)){
+            num = parseComicNumber(data);
+        }
+
+        if (num == 0) {
             num = comicsList.getMaxNumber();
-        if (num == 0)
             getLatestComic(this);
-
-        swipeStartOffset = mSwipeRandom.getProgressViewStartOffset();
-        swipeEndOffset = mSwipeRandom.getProgressViewEndOffset();
-
-        // Initialize the actionbar static height
-        mSwipeRandom.setProgressViewOffset(false, getActionBarStaticHeight()+ swipeStartOffset,
-                getActionBarStaticHeight()+ swipeEndOffset);
-
-        mSwipeRandom.setNestedScrollingEnabled(true);
-        mSwipeRandom.setOnRefreshListener(() -> {
-            int max = (mAdapter.getMaxNumber() <1000) ? 1000 : mAdapter.getMaxNumber()-1;
-            mPager.setCurrentItem(new Random().nextInt(max)+1, true);
-            mSwipeRandom.setRefreshing(false);
-        });
+        }
 
         mPager.addOnPageChangeListener(onPageChangeListener);
         mPager.setCurrentItem(num);
@@ -89,7 +90,8 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
         // Manually call the onPageSelected for the first time.
         // See link: https://stackoverflow.com/a/20292064
         mPager.post(() -> onPageChangeListener.onPageSelected(mPager.getCurrentItem()));
-    }
+
+        }
 
     private ComicsPageAdapter getComicsPagerAdapter() {
         return new ComicsPageAdapter(getSupportFragmentManager(), comicsList.getMaxNumber()) {
@@ -98,6 +100,14 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
                 return ImageFragment.init(position);
             }
         };
+    }
+
+    private int parseComicNumber(Uri data){
+        List<String> segments = data.getPathSegments();
+        if (segments != null && segments.size() > 0) {
+            return Integer.parseInt(segments.get(0));
+        }
+        return 0;
     }
 
     ViewPager.OnPageChangeListener onPageChangeListener = new ViewPager.OnPageChangeListener() {
@@ -113,28 +123,15 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
         }
 
         @Override
-        public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+        public void onPageScrollStateChanged(int state) {
+
         }
 
         @Override
-        public void onPageScrollStateChanged(int pos) {
-            enableDisableSwipeRefresh( pos != ViewPager.SCROLL_STATE_DRAGGING);
+        public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
         }
+
     };
-
-    private int getActionBarStaticHeight() {
-        TypedValue tv = new TypedValue();
-        int actionBarHeight = 0;
-        if (getTheme().resolveAttribute(android.R.attr.actionBarSize, tv, true))
-        {
-            actionBarHeight = TypedValue.complexToDimensionPixelSize(tv.data, getResources().getDisplayMetrics());
-        }
-        return actionBarHeight;
-    }
-
-    private void enableDisableSwipeRefresh(boolean enable) {
-        mSwipeRandom.setEnabled(enable);
-    }
 
     @Override
     public void onImageTap() {
@@ -143,23 +140,11 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
         } else {
             mActionBar.show();
         }
-        mSwipeRandom.setProgressViewOffset(false, mActionBar.getHideOffset()+ swipeStartOffset,
-                mActionBar.getHideOffset()+ swipeEndOffset);
     }
 
-    /**
-     * Don't enable swipe if we are in zoomed image view
-     * */
     @Override
-    public View.OnTouchListener getOnImageTouchListener(final TouchImageView comicView) {
-        return (v, ev) -> {
-            switch (ev.getAction()) {
-                case MotionEvent.ACTION_MOVE:
-                case MotionEvent.ACTION_UP:
-                    mSwipeRandom.setEnabled(comicView.getZoomedRect().top == 0.0);
-            }
-            return false;
-        };
+    public View.OnTouchListener getOnImageTouchListener(TouchImageView comicView) {
+        return null;
     }
 
     @Override
@@ -173,15 +158,23 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
-                try{
-                    int num = Integer.parseInt(query);
-                    mPager.setCurrentItem(num);
-                    MenuItem searchMenuItem = menu.findItem(R.id.action_search);
-                    if (searchMenuItem != null) {
-                        searchMenuItem.collapseActionView();
+                if (query != null) {
+                    query = query.trim();
+                    try {
+                        int num = Integer.parseInt(query);
+                        showComic(num);
+                    } catch (ParseException | NumberFormatException e){
+                        try {
+                            openInBrowser(query);
+                        } catch (UnsupportedEncodingException e1) {
+                            e1.printStackTrace();
+                            // ignore
+                        }
                     }
-                } catch (Exception e){
-                    e.printStackTrace();
+                }
+                MenuItem searchMenuItem = menu.findItem(R.id.action_search);
+                if (searchMenuItem != null) {
+                    searchMenuItem.collapseActionView();
                 }
                 return false;
             }
@@ -193,6 +186,19 @@ public class ComicsActivity extends AppCompatActivity implements ImageFragment.O
         });
 
         return true;
+    }
+
+    private void showComic(int num) {
+        mPager.setCurrentItem(num);
+    }
+
+    private void openInBrowser(String query) throws UnsupportedEncodingException {
+        String encoded = URLEncoder.encode(query, "UTF-8");
+        String ignoreUrl = " -site:forums.xkcd.com -site:what-if.xkcd.com -site:fora.xkcd.com -site:blog.xkcd.com -site:wiki.xkcd.com -site:https://es.xkcd.com";
+        String url = "https://www.google.com/search?q="+encoded+"+site:xkcd.com"+ignoreUrl;
+        Intent i = new Intent(Intent.ACTION_VIEW);
+        i.setData(Uri.parse(url));
+        startActivity(i);
     }
 
     @Override
