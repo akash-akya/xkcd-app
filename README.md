@@ -1,35 +1,17 @@
-##  XKCD Comics Browser
-_A simple app which fetches Web comics from [XKCD] articles from [What-If].  Support offile viewing.(saves the image)._
+##  YAXA or Yet Another xkcd App
+A simple android application for [xkcd](https://xkcd.com/) comics.
 
-![alt text](https://github.com/akash-akya/XKCD-WebComics-APP/blob/master/XKCDbanner.jpg "XKCD")
-
-###Features
-* Complete image view features using **PhotoView** library. *(pinch zoom, drag to move)*
-* _Full screen_ view on tap
-* __Offline support__ _(saves images in /XKCD/ folder)_
-* _Swipe Down_ to fetch latest comic
-* Fetches image _description_ _(On Long press)_
-* Comics can be fetched by its _number_
-* _List view_ to browse local images
-* Fetches __what-if.xkcd.com__ articles (only text)
-* Dark theme with navigation buttons
-* Comics can be shared via app
-
-**Currently app support android version > 4.0 (Icecream sandwich) Lollipop is not supported.**
-
-### STATUS : STABLE
-
-### TO-DO
-- Add Lollipop support
-
-### Libraries used
-- [Jsoup]
-- [PhotoView] _by chrisbanes_
+### Features
+* Decent image viewer with pinch to zoom gesture
+* Comic will be saved for offline viewing
+* alt-text and transcript for the comics
+* Handles xkcd URI
+* Invert mode
 
 ### License
 
     XKCD Comic Browser android application fetches XKCD comics.
-    Copyright (C) 2015 Akash Hiremath 
+    Copyright (C) 2018 Akash Hiremath
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -44,8 +26,4 @@ _A simple app which fetches Web comics from [XKCD] articles from [What-If].  Sup
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-[Jsoup]:http://jsoup.org/
-[XKCD]:http://xkcd.com
-[What-If]:http://what-if.xkcd.com
 [PhotoView]:https://github.com/chrisbanes/PhotoView
-
