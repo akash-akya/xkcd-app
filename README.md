@@ -10,7 +10,7 @@ A simple android application for [xkcd](https://xkcd.com/) comics.
 
 ### License
 
-    XKCD Comic Browser android application fetches XKCD comics.
+    YAXA is xkcd comics browser.
     Copyright (C) 2018 Akash Hiremath
 
     This program is free software: you can redistribute it and/or modify
